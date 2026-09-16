@@ -1,0 +1,8 @@
+{
+  "name": "Remix RC Wheel Alignment Tool",
+  "description": "Mesure en temps réel du carrossage, pincement et angle de chasse pour voitures RC avec capteurs gyroscopiques, étalonnage zéro, gestion multi-véhicules et synchronisation cloud.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
