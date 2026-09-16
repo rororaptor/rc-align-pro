@@ -1,7 +1,12 @@
-const CACHE_NAME = 'rc-align-v3';
+const CACHE_NAME = 'rc-align-v4';
+const PRECACHE_URLS = ['/'];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(PRECACHE_URLS);
+    }).then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -29,9 +34,7 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       }).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
+        return caches.match('/');
       });
     })
   );
