@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Vehicle, VehicleSetupSheet } from '../types';
-import { exportSetupToCSV } from '../utils/exportCsv';
 import { downloadSetupPdf } from '../utils/exportPdf';
-import { X, Plus, Download, Copy, Trash2, Calendar, CheckCircle2, FileSpreadsheet, FileText } from 'lucide-react';
+import { X, Plus, Copy, Trash2, Calendar, CheckCircle2, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface SetupsHistoryModalProps {
   isOpen: boolean;
@@ -216,14 +215,6 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                       >
                         <FileText className="w-3.5 h-3.5 text-emerald-400" />
                         <span className="hidden sm:inline">PDF</span>
-                      </button>
-                      <button
-                        onClick={() => exportSetupToCSV(vehicle, setup)}
-                        title="Télécharger le fichier CSV"
-                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-700/60 text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">CSV</span>
                       </button>
                       <button
                         onClick={() => handleDuplicate(setup)}

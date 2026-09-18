@@ -10,11 +10,9 @@ import { ChassisVisualizer } from './components/ChassisVisualizer';
 import { MeasureView } from './components/MeasureView';
 import { VehicleManagerModal } from './components/VehicleManagerModal';
 import { SetupsHistoryModal } from './components/SetupsHistoryModal';
-import { CloudSyncModal } from './components/CloudSyncModal';
 import { SetupPdfModal } from './components/SetupPdfModal';
 import { useDeviceSensors } from './hooks/useDeviceSensors';
-import { useCloudSync } from './hooks/useCloudSync';
-import { exportSetupToCSV } from './utils/exportCsv';
+import { useVehicles } from './hooks/useVehicles';
 import { requestWakeLock, releaseWakeLock } from './utils/wakeLock';
 import {
   Car,
@@ -42,26 +40,17 @@ export default function App() {
   // Modals state
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isSetupsModalOpen, setIsSetupsModalOpen] = useState(false);
-  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isWakeLocked, setIsWakeLocked] = useState(false);
 
-  // Cloud Sync hook
+  // Local Vehicles & Setups management
   const {
-    syncCode,
-    changeSyncCode,
     vehicles,
     activeVehicle,
     activeVehicleId,
     setActiveVehicleId,
-    updateVehiclesAndSync,
-    isConnected: isCloudConnected,
-    isSyncing,
-    lastSyncedAt,
-    connectedDevices,
-    syncError,
-    triggerManualSync,
-  } = useCloudSync();
+    updateVehicles,
+  } = useVehicles();
 
   // Sensors & Inclinometer hook
   const {
@@ -136,7 +125,7 @@ export default function App() {
       return v;
     });
 
-    updateVehiclesAndSync(updatedVehicles);
+    updateVehicles(updatedVehicles);
   };
 
   // Mirror wheels left to right or right to left
@@ -188,7 +177,7 @@ export default function App() {
     const updatedVehicles = vehicles.map((v) =>
       v.id === activeVehicle.id ? { ...v, setups: updatedSetups } : v
     );
-    updateVehiclesAndSync(updatedVehicles);
+    updateVehicles(updatedVehicles);
   };
 
   // Theme container classes
@@ -208,11 +197,7 @@ export default function App() {
         onSelectVehicle={(id) => setActiveVehicleId(id)}
         onOpenVehicleManager={() => setIsVehicleModalOpen(true)}
         onOpenSetupsModal={() => setIsSetupsModalOpen(true)}
-        onOpenCloudModal={() => setIsCloudModalOpen(true)}
-        onExportCsv={() => exportSetupToCSV(activeVehicle, activeSetup)}
         onOpenPdfModal={() => setIsPdfModalOpen(true)}
-        isCloudConnected={isCloudConnected}
-        syncCode={syncCode}
         isWakeLocked={isWakeLocked}
         onToggleWakeLock={handleToggleWakeLock}
         isOrientationLocked={isOrientationLocked}
@@ -394,7 +379,7 @@ export default function App() {
         vehicles={vehicles}
         activeVehicleId={activeVehicleId}
         onSelectVehicle={(id) => setActiveVehicleId(id)}
-        onSaveVehicles={updateVehiclesAndSync}
+        onSaveVehicles={updateVehicles}
       />
 
       <SetupsHistoryModal
@@ -403,21 +388,8 @@ export default function App() {
         vehicle={activeVehicle}
         onUpdateVehicle={(updated) => {
           const updatedVehicles = vehicles.map((v) => (v.id === updated.id ? updated : v));
-          updateVehiclesAndSync(updatedVehicles);
+          updateVehicles(updatedVehicles);
         }}
-      />
-
-      <CloudSyncModal
-        isOpen={isCloudModalOpen}
-        onClose={() => setIsCloudModalOpen(false)}
-        syncCode={syncCode}
-        onChangeSyncCode={changeSyncCode}
-        isConnected={isCloudConnected}
-        isSyncing={isSyncing}
-        lastSyncedAt={lastSyncedAt}
-        connectedDevices={connectedDevices}
-        syncError={syncError}
-        onTriggerSync={triggerManualSync}
       />
 
       {/* PDF Setup Sheet Generation & Print Modal */}

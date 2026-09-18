@@ -76,13 +76,18 @@ export function generateSetupPdf(
   // Title Text
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(12);
   doc.text('RC ALIGN PRO', marginX + 7, headerY + 7);
 
-  doc.setFontSize(7.5);
+  doc.setFontSize(8);
   doc.setTextColor(16, 185, 129);
   doc.setFont('helvetica', 'bold');
-  doc.text('FICHE OFFICIELLE DE RÉGLAGES & GÉOMÉTRIE CHÂSSIS', marginX + 44, headerY + 7);
+  doc.text('by rororaptor', marginX + 41, headerY + 7);
+
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont('helvetica', 'normal');
+  doc.text('• FICHE OFFICIELLE DE RÉGLAGES & GÉOMÉTRIE', marginX + 63, headerY + 7);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
@@ -588,7 +593,7 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.setTextColor(148, 163, 184);
-  doc.text('RC ALIGN PRO • Système de mesure et géométrie châssis pour modélisme radio-commandé', marginX, footerY + 4);
+  doc.text('RC ALIGN PRO by rororaptor • Système de mesure et géométrie châssis pour modélisme radio-commandé', marginX, footerY + 4);
   doc.text('Fiche imprimable standard A4 • Page 1/1', marginX + contentWidth, footerY + 4, { align: 'right' });
 
   return doc;

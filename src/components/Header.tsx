@@ -1,12 +1,9 @@
 import React from 'react';
 import {
   Car,
-  Cloud,
-  CloudOff,
   Sun,
   Moon,
   Smartphone,
-  Download,
   Sliders,
   FolderOpen,
   Eye,
@@ -25,11 +22,7 @@ interface HeaderProps {
   onSelectVehicle: (id: string) => void;
   onOpenVehicleManager: () => void;
   onOpenSetupsModal: () => void;
-  onOpenCloudModal: () => void;
-  onExportCsv: () => void;
   onOpenPdfModal?: () => void;
-  isCloudConnected: boolean;
-  syncCode: string;
   isWakeLocked: boolean;
   onToggleWakeLock: () => void;
   isOrientationLocked?: boolean;
@@ -44,11 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectVehicle,
   onOpenVehicleManager,
   onOpenSetupsModal,
-  onOpenCloudModal,
-  onExportCsv,
   onOpenPdfModal,
-  isCloudConnected,
-  syncCode,
   isWakeLocked,
   onToggleWakeLock,
   isOrientationLocked = false,
@@ -65,11 +54,14 @@ export const Header: React.FC<HeaderProps> = ({
             <Car className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-extrabold text-base sm:text-lg tracking-tight flex items-center gap-1.5 text-white">
                 <span>RC ALIGN</span>
                 <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   PRO
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-emerald-400 tracking-tight ml-1">
+                  by rororaptor
                 </span>
               </h1>
             </div>
@@ -100,30 +92,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Cloud Sync Status Pill */}
-          <button
-            onClick={onOpenCloudModal}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium transition ${
-              isCloudConnected
-                ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/60 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
-                : 'bg-amber-950/60 border-amber-500/40 text-amber-300 hover:bg-amber-900/60'
-            }`}
-            title="Gestion de la synchronisation cloud multi-appareils"
-          >
-            {isCloudConnected ? (
-              <>
-                <Cloud className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-                <span className="hidden xs:inline">SYNC:</span>
-                <span className="font-bold">{syncCode}</span>
-              </>
-            ) : (
-              <>
-                <CloudOff className="w-3.5 h-3.5 text-amber-400" />
-                <span>Local</span>
-              </>
-            )}
-          </button>
-
           {/* WakeLock Screen Toggle */}
           <button
             onClick={onToggleWakeLock}
@@ -205,16 +173,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Fiche PDF</span>
             </button>
           )}
-
-          {/* Quick Export CSV */}
-          <button
-            onClick={onExportCsv}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/60 text-slate-300 text-xs flex items-center gap-1.5 font-medium transition"
-            title="Exporter le setup actuel en fichier CSV"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">CSV</span>
-          </button>
 
           {/* PWA Install Button */}
           {isInstallable && (
