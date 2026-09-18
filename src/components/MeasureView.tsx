@@ -92,11 +92,12 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
     targetTitle = 'Angle de Chasse Recommandé';
   }
 
-  const isInRange = displayAngle >= targetRange.min && displayAngle <= targetRange.max;
-  const isUnder = displayAngle < targetRange.min;
+  const safeAngle = Math.abs(displayAngle) < 0.05 ? 0 : displayAngle;
+  const isInRange = safeAngle >= targetRange.min && safeAngle <= targetRange.max;
+  const isUnder = safeAngle < targetRange.min;
 
   // Visual linear bubble level offset (-15° to +15° clamped to percentage)
-  const clampedAngleForLevel = Math.max(-15, Math.min(15, displayAngle));
+  const clampedAngleForLevel = Math.max(-15, Math.min(15, safeAngle));
   const bubblePositionPercent = 50 + (clampedAngleForLevel / 15) * 42;
 
   // Cardinal direction helper for compass
@@ -270,20 +271,20 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 : 'text-white'
             }`}
           >
-            {displayAngle > 0 ? `+${displayAngle.toFixed(1)}` : displayAngle.toFixed(1)}
+            {safeAngle > 0 ? `+${safeAngle.toFixed(1)}` : safeAngle.toFixed(1)}
             <span className="text-3xl sm:text-4xl font-normal ml-1 text-slate-400">°</span>
           </div>
 
           {/* Subtext description for Toe (Pincement vs Ouverture) */}
           {activeMeasurement === 'toe' && (
             <div className="text-xs font-bold uppercase tracking-widest mt-1">
-              {displayAngle > 0.1 ? (
+              {safeAngle > 0.1 ? (
                 <span className="text-sky-400 flex items-center justify-center gap-1">
                   <span>Pincement (Toe-in)</span>
                   <ArrowRight className="w-3.5 h-3.5 inline" />
                   <ArrowLeft className="w-3.5 h-3.5 inline" />
                 </span>
-              ) : displayAngle < -0.1 ? (
+              ) : safeAngle < -0.1 ? (
                 <span className="text-orange-400 flex items-center justify-center gap-1">
                   <span>Ouverture (Toe-out)</span>
                   <ArrowLeft className="w-3.5 h-3.5 inline" />
@@ -298,11 +299,11 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
           {/* Subtext description for Camber (Carrossage) */}
           {activeMeasurement === 'camber' && (
             <div className="text-xs font-mono text-slate-400 mt-1">
-              {displayAngle < -0.1 ? (
+              {safeAngle < -0.1 ? (
                 <span className="text-emerald-400 font-semibold">
                   Carrossage Négatif (Haut vers l&apos;intérieur)
                 </span>
-              ) : displayAngle > 0.1 ? (
+              ) : safeAngle > 0.1 ? (
                 <span className="text-amber-400 font-semibold">
                   Carrossage Positif (Haut vers l&apos;extérieur)
                 </span>
@@ -315,11 +316,11 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
           {/* Subtext description for Caster (Chasse) */}
           {activeMeasurement === 'caster' && (
             <div className="text-xs font-mono text-slate-400 mt-1">
-              {displayAngle > 0.1 ? (
+              {safeAngle > 0.1 ? (
                 <span className="text-emerald-400 font-semibold">
                   Chasse Positive (Fusée inclinée vers l&apos;arrière)
                 </span>
-              ) : displayAngle < -0.1 ? (
+              ) : safeAngle < -0.1 ? (
                 <span className="text-amber-400 font-semibold">
                   Chasse Négative (Fusée inclinée vers l&apos;avant)
                 </span>
@@ -634,7 +635,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
             <div className="text-center">
               <span className="text-[10px] text-slate-400 block">Pincement Calculé</span>
               <span className="font-extrabold text-white">
-                {displayAngle > 0 ? `+${displayAngle.toFixed(1)}°` : `${displayAngle.toFixed(1)}°`}
+                {safeAngle > 0 ? `+${safeAngle.toFixed(1)}°` : `${safeAngle.toFixed(1)}°`}
               </span>
             </div>
           </div>
