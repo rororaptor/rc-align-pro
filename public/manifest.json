@@ -1,7 +1,7 @@
 {
   "id": "/",
   "name": "RC Wheel Alignment Tool",
-  "short_name": "RC Align pro",
+  "short_name": "RC Align Pro",
   "description": "Mesure en temps réel du carrossage, pincement et angle de chasse pour voitures RC",
   "start_url": "/",
   "scope": "/",
