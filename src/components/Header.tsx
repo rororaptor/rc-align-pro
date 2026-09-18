@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Eye,
   EyeOff,
+  Lock,
 } from 'lucide-react';
 import { ThemeMode, Vehicle } from '../types';
 import { usePWAInstall } from '../hooks/usePWAInstall';
@@ -29,6 +30,8 @@ interface HeaderProps {
   syncCode: string;
   isWakeLocked: boolean;
   onToggleWakeLock: () => void;
+  isOrientationLocked?: boolean;
+  onToggleOrientationLock?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -45,6 +48,8 @@ export const Header: React.FC<HeaderProps> = ({
   syncCode,
   isWakeLocked,
   onToggleWakeLock,
+  isOrientationLocked = false,
+  onToggleOrientationLock,
 }) => {
   const { isInstallable, install } = usePWAInstall();
 
@@ -129,6 +134,26 @@ export const Header: React.FC<HeaderProps> = ({
             {isWakeLocked ? <Eye className="w-3.5 h-3.5 text-sky-400" /> : <EyeOff className="w-3.5 h-3.5" />}
             <span className="hidden md:inline">Écran On</span>
           </button>
+
+          {/* Screen Orientation Lock Toggle */}
+          {onToggleOrientationLock && (
+            <button
+              onClick={onToggleOrientationLock}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs flex items-center gap-1.5 font-medium transition ${
+                isOrientationLocked
+                  ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                  : 'bg-slate-900 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+              title={
+                isOrientationLocked
+                  ? "Rotation d'écran verrouillée en portrait (aucun basculement involontaire)"
+                  : "Cliquer pour verrouiller l'écran en mode portrait et empêcher la rotation"
+              }
+            >
+              <Lock className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">{isOrientationLocked ? 'Portrait Fixé' : 'Verrouiller'}</span>
+            </button>
+          )}
 
           {/* Theme Selector (Outdoor Sun vs OLED Dark) */}
           <div className="flex items-center bg-slate-900 border border-slate-700/60 rounded-lg p-0.5 text-xs">

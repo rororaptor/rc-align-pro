@@ -67,6 +67,7 @@ export default function App() {
     simulationMode,
     setSimulationMode,
     requestSensorPermission,
+    sensorValues,
     calibration,
     calibrateZero,
     setChassisToeReference,
@@ -76,13 +77,17 @@ export default function App() {
     toggleHold,
     displayAngle,
     rawCalculatedAngle,
+    isOrientationLocked,
+    handleLockOrientationWithFullscreen,
+    isSignReversed,
+    toggleSignReversed,
     simRoll,
     setSimRoll,
     simYaw,
     setSimYaw,
     simPitch,
     setSimPitch,
-  } = useDeviceSensors(activeMeasurement);
+  } = useDeviceSensors(activeMeasurement, selectedWheel);
 
   // Save theme
   useEffect(() => {
@@ -215,6 +220,8 @@ export default function App() {
         syncCode={syncCode}
         isWakeLocked={isWakeLocked}
         onToggleWakeLock={handleToggleWakeLock}
+        isOrientationLocked={isOrientationLocked}
+        onToggleOrientationLock={handleLockOrientationWithFullscreen}
       />
 
       {/* Main Content Area */}
@@ -225,7 +232,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <Radio className="w-4 h-4 text-sky-400 animate-pulse" />
               <span>
-                Activer les capteurs gyroscopiques du smartphone pour la mesure en temps réel.
+                Activer les capteurs gyroscopiques et boussole du smartphone pour la mesure en temps réel.
               </span>
             </div>
             <button
@@ -271,6 +278,13 @@ export default function App() {
               onSelectMeasurement={setActiveMeasurement}
               displayAngle={displayAngle}
               rawCalculatedAngle={rawCalculatedAngle}
+              compassHeading={sensorValues.compassHeading}
+              referenceChassisYaw={calibration.referenceChassisYaw}
+              isLevelActive={sensorValues.isLevelActive}
+              isOrientationLocked={isOrientationLocked}
+              onLockOrientation={handleLockOrientationWithFullscreen}
+              isSignReversed={isSignReversed}
+              onToggleSignReversed={toggleSignReversed}
               calibrateZero={calibrateZero}
               setChassisToeReference={setChassisToeReference}
               clearChassisToeReference={clearChassisToeReference}
@@ -294,20 +308,24 @@ export default function App() {
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-300 space-y-2">
               <div className="flex items-center gap-2 font-bold text-slate-200">
                 <Wrench className="w-4 h-4 text-emerald-400" />
-                <span>Guide d&apos;utilisation rapide sur le banc de réglage</span>
+                <span>Guide d&apos;utilisation atelier &amp; conventions de mesure</span>
               </div>
-              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-400 font-mono">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[11px] text-slate-400 font-mono">
                 <li className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                   <strong className="text-emerald-400 block mb-1">1. Carrossage :</strong>
-                  Plaquez la tranche droite ou gauche du smartphone verticalement contre la jante ou la règle de réglage.
+                  Niveau à bulle sur la tranche. Roue gauche : incliné à droite = négatif. Roue droite : incliné à gauche = négatif.
                 </li>
                 <li className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                   <strong className="text-emerald-400 block mb-1">2. Pincement :</strong>
-                  Étalonnez le zéro sur la ligne axiale du châssis, puis appliquez contre la roue pour lire l&apos;angle relatif.
+                  Capteur boussole : étalonnez le zéro au centre du châssis, puis appliquez contre la roue. Bouton « ± Signe » si inversé.
                 </li>
                 <li className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <strong className="text-emerald-400 block mb-1">3. Chasse :</strong>
-                  Inclinez le smartphone le long de l&apos;axe de pivot / étrier de direction pour mesurer l&apos;angle de kingpin.
+                  <strong className="text-emerald-400 block mb-1">3. Chasse (Fusée) :</strong>
+                  Plaquez l&apos;écran ou le dos contre la roue, penchez en avant/arrière le long de la fusée. Bouton « ± Signe » pour ajuster.
+                </li>
+                <li className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                  <strong className="text-emerald-400 block mb-1">4. Verrouillage :</strong>
+                  Bouton « Verrouiller Portrait » pour bloquer la rotation d&apos;écran pendant les manipulations sur banc.
                 </li>
               </ul>
             </div>
