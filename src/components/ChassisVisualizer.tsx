@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { WheelPosition, AngleMeasurementType, Vehicle, VehicleSetupSheet } from '../types';
-import { Copy, Disc } from 'lucide-react';
+import { Copy, Disc, Eye, Navigation, Layers, FileText } from 'lucide-react';
 import { CarTopView } from './CarTopView';
+import { CarFrontView } from './CarFrontView';
+import { CarSideView } from './CarSideView';
 
 interface ChassisVisualizerProps {
   vehicle: Vehicle;
@@ -11,6 +13,7 @@ interface ChassisVisualizerProps {
   activeMeasurement: AngleMeasurementType;
   onSelectMeasurement: (type: AngleMeasurementType) => void;
   onMirrorWheels: (source: 'leftToRight' | 'rightToLeft') => void;
+  onExportPdf?: () => void;
 }
 
 export const ChassisVisualizer: React.FC<ChassisVisualizerProps> = ({
@@ -21,8 +24,8 @@ export const ChassisVisualizer: React.FC<ChassisVisualizerProps> = ({
   activeMeasurement,
   onSelectMeasurement,
   onMirrorWheels,
+  onExportPdf,
 }) => {
-  const [viewMode, setViewMode] = useState<'car' | 'cards'>('car');
   const wheels = activeSetup.wheels;
   const targets = vehicle.customTargets;
 
@@ -132,16 +135,47 @@ export const ChassisVisualizer: React.FC<ChassisVisualizerProps> = ({
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 sm:p-4 backdrop-blur-sm shadow-xl">
       {/* Header bar */}
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Disc className="w-4 h-4 text-emerald-400" />
-          <h2 className="font-bold text-sm sm:text-base text-slate-200">
-            Schéma Châssis Vue du Dessus ({vehicle.scale})
-          </h2>
+      <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+        <div>
+          {activeMeasurement === 'camber' && (
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-emerald-400" />
+              <h2 className="font-bold text-sm sm:text-base text-slate-200">
+                Schéma Châssis • Vue de Face (Carrossage)
+              </h2>
+            </div>
+          )}
+          {activeMeasurement === 'toe' && (
+            <div className="flex items-center gap-2">
+              <Disc className="w-4 h-4 text-emerald-400" />
+              <h2 className="font-bold text-sm sm:text-base text-slate-200">
+                Schéma Châssis • Vue du Dessus (Pincement)
+              </h2>
+            </div>
+          )}
+          {activeMeasurement === 'caster' && (
+            <div className="flex items-center gap-2">
+              <Navigation className="w-4 h-4 text-sky-400 rotate-90" />
+              <h2 className="font-bold text-sm sm:text-base text-slate-200">
+                Schéma Châssis • Vue de Côté (Chasse)
+              </h2>
+            </div>
+          )}
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-xs flex-wrap">
+          {onExportPdf && (
+            <button
+              onClick={onExportPdf}
+              title="Générer et télécharger la fiche de réglages complète sous format PDF (format officiel A4)"
+              className="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded border border-emerald-500/40 flex items-center gap-1 transition font-bold"
+            >
+              <FileText className="w-3 h-3 text-emerald-400" />
+              <span>Fiche PDF</span>
+            </button>
+          )}
+
           {/* Mirroring Left to Right / Right to Left */}
           <button
             onClick={() => onMirrorWheels('leftToRight')}
@@ -162,16 +196,73 @@ export const ChassisVisualizer: React.FC<ChassisVisualizerProps> = ({
         </div>
       </div>
 
-      {/* Main Top-down Car Visualizer Section */}
+      {/* Perspective / Measurement Type Switcher Tabs */}
+      <div className="grid grid-cols-3 gap-1 mb-3 bg-slate-950/90 p-1 rounded-xl border border-slate-800 text-[11px] sm:text-xs font-mono">
+        <button
+          onClick={() => onSelectMeasurement('camber')}
+          className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition font-bold ${
+            activeMeasurement === 'camber'
+              ? 'bg-emerald-500 text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+          title="Vue de face du châssis : idéale pour visualiser l'inclinaison des roues en carrossage"
+        >
+          <Eye className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Vue de Face (Carrossage)</span>
+        </button>
+
+        <button
+          onClick={() => onSelectMeasurement('toe')}
+          className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition font-bold ${
+            activeMeasurement === 'toe'
+              ? 'bg-emerald-500 text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+          title="Vue du dessus du châssis : indispensable pour évaluer le pincement et l'ouverture des roues"
+        >
+          <Disc className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Vue du Dessus (Pincement)</span>
+        </button>
+
+        <button
+          onClick={() => onSelectMeasurement('caster')}
+          className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition font-bold ${
+            activeMeasurement === 'caster'
+              ? 'bg-sky-500 text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+          title="Vue de côté / profil du châssis : optimale pour observer l'angle de chasse du train avant"
+        >
+          <Navigation className="w-3.5 h-3.5 rotate-90 shrink-0" />
+          <span className="truncate">Vue de Côté (Chasse)</span>
+        </button>
+      </div>
+
+      {/* Main Schematic Section - Conditionally Rendered View */}
       <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 relative overflow-hidden">
-        {/* Car Top View Graphic */}
-        <CarTopView
-          vehicle={vehicle}
-          activeSetup={activeSetup}
-          selectedWheel={selectedWheel}
-          onSelectWheel={onSelectWheel}
-          activeMeasurement={activeMeasurement}
-        />
+        {activeMeasurement === 'camber' ? (
+          <CarFrontView
+            vehicle={vehicle}
+            activeSetup={activeSetup}
+            selectedWheel={selectedWheel}
+            onSelectWheel={onSelectWheel}
+          />
+        ) : activeMeasurement === 'caster' ? (
+          <CarSideView
+            vehicle={vehicle}
+            activeSetup={activeSetup}
+            selectedWheel={selectedWheel}
+            onSelectWheel={onSelectWheel}
+          />
+        ) : (
+          <CarTopView
+            vehicle={vehicle}
+            activeSetup={activeSetup}
+            selectedWheel={selectedWheel}
+            onSelectWheel={onSelectWheel}
+            activeMeasurement={activeMeasurement}
+          />
+        )}
 
         {/* Wheel Cards Positioned in 2x2 Around or Under */}
         <div className="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-slate-800/80">

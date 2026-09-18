@@ -7,11 +7,16 @@ export interface SensorData {
   pitch: number;          // Inclinometer tilt front/back (degrees)
   roll: number;           // Inclinometer tilt left/right (degrees)
   yaw: number;            // Relative yaw (degrees)
-  compassHeading: number; // Magnetic / true compass heading (0..360°)
+  compassHeading: number; // Pure magnetic / true compass heading (0..360°)
   rawPitch: number;
   rawRoll: number;
   rawYaw: number;
   isLevelActive: boolean; // True when spirit level accelerometer is active
+  // 2D Spirit level flatness when smartphone is placed flat (horizontal, face up):
+  flatRoll: number;        // Roll tilt from horizontal plane (degrees)
+  flatPitch: number;       // Pitch tilt from horizontal plane (degrees)
+  flatTiltDegrees: number; // Overall angle from horizontal plane (degrees)
+  isFlat: boolean;         // True if within <= 2.5° of horizontal
 }
 
 export function useDeviceSensors(
@@ -20,7 +25,6 @@ export function useDeviceSensors(
 ) {
   const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
   const [hasRealSensors, setHasRealSensors] = useState<boolean>(false);
-  const [simulationMode, setSimulationMode] = useState<boolean>(false);
   const [isOrientationLocked, setIsOrientationLocked] = useState<boolean>(false);
 
   // Calibration offsets (Tare)
@@ -55,6 +59,10 @@ export function useDeviceSensors(
     rawRoll: 0,
     rawYaw: 0,
     isLevelActive: false,
+    flatRoll: 0,
+    flatPitch: 0,
+    flatTiltDegrees: 0,
+    isFlat: true,
   });
 
   // Hold / Freeze feature
@@ -91,17 +99,12 @@ export function useDeviceSensors(
     });
   }, [activeMeasurement]);
 
-  // Manual simulation angles for desktop / non-sensor preview
-  const [simRoll, setSimRoll] = useState<number>(-2.0);  // e.g. -2.0° camber
-  const [simYaw, setSimYaw] = useState<number>(1.5);     // e.g. +1.5° toe (pincement)
-  const [simPitch, setSimPitch] = useState<number>(5.0); // e.g. 5.0° caster
-
   // Smoothing filters (Exponential Moving Average)
   const smoothedLevelTilt = useRef<number>(0);
   const smoothedPitch = useRef<number>(0);
   const smoothedCompass = useRef<number>(0);
   const hasReceivedAnySensor = useRef<boolean>(false);
-  const hasReceivedMotion = useRef<boolean>(false);
+  const hasReceivedAbsolute = useRef<boolean>(false);
 
   // Request permission (iOS 13+ and certain Chromium flags)
   const requestSensorPermission = useCallback(async () => {
@@ -143,7 +146,6 @@ export function useDeviceSensors(
       setHasRealSensors(true);
     } else {
       setPermissionState('denied');
-      setSimulationMode(true);
     }
   }, []);
 
@@ -176,31 +178,43 @@ export function useDeviceSensors(
     }
   }, []);
 
-  // Tare / Zero current reading for active angle
+  // Tare / Zero current reading for active angle:
+  // EXACT USER REQUIREMENT:
+  // "affecter la fonction calibrer zéro référence châssis au bouton tare 0 degrés lors de la mesure du pincement."
   const calibrateZero = useCallback(() => {
     playTareSound();
+    if (activeMeasurement === 'toe') {
+      const refHeading = sensorValues.compassHeading;
+      const updated: SensorCalibration = {
+        ...calibration,
+        referenceChassisYaw: refHeading,
+        zeroYaw: refHeading,
+        lastCalibratedAt: new Date().toISOString(),
+      };
+      saveCalibration(updated);
+    } else {
+      const updated: SensorCalibration = {
+        ...calibration,
+        zeroPitch: sensorValues.rawPitch,
+        zeroRoll: sensorValues.roll, // Zero out the spirit level tilt
+        lastCalibratedAt: new Date().toISOString(),
+      };
+      saveCalibration(updated);
+    }
+  }, [activeMeasurement, calibration, saveCalibration, sensorValues]);
+
+  // Explicit set reference chassis angle for Toe measurement
+  const setChassisToeReference = useCallback(() => {
+    playTareSound();
+    const refHeading = sensorValues.compassHeading;
     const updated: SensorCalibration = {
       ...calibration,
-      zeroPitch: sensorValues.rawPitch,
-      zeroRoll: sensorValues.roll, // Zero out the spirit level tilt
-      zeroYaw: sensorValues.compassHeading,
+      referenceChassisYaw: refHeading,
+      zeroYaw: refHeading,
       lastCalibratedAt: new Date().toISOString(),
     };
     saveCalibration(updated);
   }, [calibration, saveCalibration, sensorValues]);
-
-  // Set reference chassis angle specifically for Toe measurement (using compass)
-  const setChassisToeReference = useCallback(() => {
-    playTareSound();
-    const refHeading = simulationMode ? simYaw : sensorValues.compassHeading;
-
-    const updated: SensorCalibration = {
-      ...calibration,
-      referenceChassisYaw: refHeading,
-      lastCalibratedAt: new Date().toISOString(),
-    };
-    saveCalibration(updated);
-  }, [calibration, saveCalibration, sensorValues, simulationMode, simYaw]);
 
   // Clear chassis toe reference
   const clearChassisToeReference = useCallback(() => {
@@ -240,14 +254,13 @@ export function useDeviceSensors(
     });
   }, []);
 
-  // Setup Sensors: DeviceMotion (Spirit Level) & DeviceOrientation / Absolute (Compass)
+  // Setup Sensors:
+  // 1. DeviceMotionEvent (Precision Spirit Level - Accelerometer ONLY)
+  // 2. Pure Compass Heading (Magnetometer ONLY, isolated from accelerometer)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let timeoutCheck: NodeJS.Timeout;
-
-    // 1. DeviceMotionEvent: Precision Spirit Level (Niveau à bulle)
-    // Directly uses acceleration including gravity (free from Euler gimbal-lock bugs)
+    // 1. DeviceMotionEvent: Precision Spirit Level
     const handleMotion = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
@@ -264,17 +277,8 @@ export function useDeviceSensors(
         setHasRealSensors(true);
         setPermissionState('granted');
       }
-      hasReceivedMotion.current = true;
 
-      // Spirit Level (Niveau à bulle):
-      // When the phone is upright or held on its edge in portrait mode:
-      // - ax is the lateral tilt (positive when tilted to the right, negative when tilted to the left).
-      // - ay is vertical acceleration along the phone's height.
-      // - az is depth tilt.
-      //
-      // In a physical spirit level, the tilt angle from true vertical is:
-      // arcsin(ax / gMag) in degrees.
-      // For phone held upright (ay >= 0): tiltRight is positive when leaning right.
+      // Spirit Level in vertical plane (edge on wheel for camber / caster):
       const signY = ay >= -1.0 ? 1 : -1;
       const normalizedRatio = Math.max(-1, Math.min(1, ax / gMag));
       const instantaneousTilt = signY * Math.asin(normalizedRatio) * (180 / Math.PI);
@@ -283,11 +287,19 @@ export function useDeviceSensors(
       const pitchRatio = Math.max(-1, Math.min(1, az / gMag));
       const instantaneousPitch = Math.asin(pitchRatio) * (180 / Math.PI);
 
-      // Low-pass exponential moving average filter (smoothFactor = 0.25)
-      // Eliminates hand jitter while preserving instantaneous response
+      // Low-pass exponential moving average filter
       const smoothFactor = 0.25;
       smoothedLevelTilt.current += (instantaneousTilt - smoothedLevelTilt.current) * smoothFactor;
       smoothedPitch.current += (instantaneousPitch - smoothedPitch.current) * smoothFactor;
+
+      // 2D Spirit Level flatness (when phone is placed horizontal / flat face up on board or chassis):
+      // When flat face up: ax = 0, ay = 0, az ~ 9.8
+      const normFlatRoll = Math.max(-1, Math.min(1, ax / gMag));
+      const normFlatPitch = Math.max(-1, Math.min(1, ay / gMag));
+      const flatRollDeg = Math.asin(normFlatRoll) * (180 / Math.PI);
+      const flatPitchDeg = Math.asin(normFlatPitch) * (180 / Math.PI);
+      const flatTiltDeg = Math.sqrt(flatRollDeg * flatRollDeg + flatPitchDeg * flatPitchDeg);
+      const isPhoneFlat = flatTiltDeg <= 2.5;
 
       setSensorValues((prev) => ({
         ...prev,
@@ -296,11 +308,15 @@ export function useDeviceSensors(
         rawRoll: instantaneousTilt,
         rawPitch: instantaneousPitch,
         isLevelActive: true,
+        flatRoll: flatRollDeg,
+        flatPitch: flatPitchDeg,
+        flatTiltDegrees: flatTiltDeg,
+        isFlat: isPhoneFlat,
       }));
     };
 
-    // 2. DeviceOrientationEvent: Compass Heading (Boussole) for Toe measurement
-    const handleOrientation = (e: DeviceOrientationEvent) => {
+    // 2. Pure Compass Processing (Magnetometer ONLY, isolated from accelerometer)
+    const processPureCompassHeading = (e: DeviceOrientationEvent) => {
       if (e.alpha === null && e.beta === null && e.gamma === null) return;
 
       if (!hasReceivedAnySensor.current) {
@@ -309,12 +325,10 @@ export function useDeviceSensors(
         setPermissionState('granted');
       }
 
-      // Compass heading calculation:
-      // iOS: webkitCompassHeading directly provides degrees 0..360 from magnetic North (clockwise).
-      // Android / Chrome: alpha in deviceorientationabsolute or deviceorientation.
       let rawHeading = 0;
-      const anyEvent = e as any;
+      const anyEvent = e as unknown as { webkitCompassHeading?: number };
 
+      // iOS Safari: webkitCompassHeading is the pure magnetometer compass (0..360° clockwise from North)
       if (typeof anyEvent.webkitCompassHeading === 'number') {
         rawHeading = anyEvent.webkitCompassHeading;
       } else if (e.alpha !== null) {
@@ -333,147 +347,89 @@ export function useDeviceSensors(
       while (smoothedCompass.current < 0) smoothedCompass.current += 360;
       while (smoothedCompass.current >= 360) smoothedCompass.current -= 360;
 
-      // If Devicemotion is not supported on older browser, fallback roll to gamma
-      setSensorValues((prev) => {
-        if (!hasReceivedMotion.current) {
-          const rawGamma = e.gamma ?? 0;
-          const rawBeta = e.beta ?? 0;
-          return {
-            ...prev,
-            roll: rawGamma,
-            pitch: rawBeta,
-            rawRoll: rawGamma,
-            rawPitch: rawBeta,
-            compassHeading: smoothedCompass.current,
-            yaw: smoothedCompass.current,
-            rawYaw: rawHeading,
-          };
-        }
-        return {
-          ...prev,
-          compassHeading: smoothedCompass.current,
-          yaw: smoothedCompass.current,
-          rawYaw: rawHeading,
-        };
-      });
+      setSensorValues((prev) => ({
+        ...prev,
+        compassHeading: smoothedCompass.current,
+        yaw: smoothedCompass.current,
+        rawYaw: rawHeading,
+      }));
     };
 
-    // Listen to device motion for spirit level
+    // Absolute orientation handler (Android Chrome pure magnetometer)
+    const handleAbsoluteOrientation = (e: DeviceOrientationEvent) => {
+      hasReceivedAbsolute.current = true;
+      processPureCompassHeading(e);
+    };
+
+    // Standard orientation handler (iOS webkitCompassHeading or fallback)
+    const handleStandardOrientation = (e: DeviceOrientationEvent) => {
+      const anyEvent = e as unknown as { webkitCompassHeading?: number };
+      if (typeof anyEvent.webkitCompassHeading === 'number') {
+        processPureCompassHeading(e);
+        return;
+      }
+      // On Android, if absolute orientation is active, ignore standard orientation
+      // to avoid accelerometer/gyro fusion noise!
+      if (hasReceivedAbsolute.current) return;
+
+      processPureCompassHeading(e);
+    };
+
+    // Listen to motion for spirit level
     window.addEventListener('devicemotion', handleMotion, true);
 
-    // Listen to absolute orientation if supported (Android Chrome compass)
+    // Listen to absolute orientation if supported (Android pure magnetometer)
     if ('ondeviceorientationabsolute' in window) {
-      window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
+      window.addEventListener('deviceorientationabsolute' as unknown as string, handleAbsoluteOrientation as EventListener, true);
     }
-    // Also standard orientation (iOS Safari compass via webkitCompassHeading)
-    window.addEventListener('deviceorientation', handleOrientation, true);
-
-    // Fallback to simulation mode if no sensors after 1.5s
-    timeoutCheck = setTimeout(() => {
-      if (!hasReceivedAnySensor.current) {
-        setHasRealSensors(false);
-        setSimulationMode(true);
-      }
-    }, 1500);
+    // Also standard orientation (iOS webkitCompassHeading)
+    window.addEventListener('deviceorientation', handleStandardOrientation, true);
 
     return () => {
       window.removeEventListener('devicemotion', handleMotion, true);
       if ('ondeviceorientationabsolute' in window) {
-        window.removeEventListener('deviceorientationabsolute' as any, handleOrientation, true);
+        window.removeEventListener('deviceorientationabsolute' as unknown as string, handleAbsoluteOrientation as EventListener, true);
       }
-      window.removeEventListener('deviceorientation', handleOrientation, true);
-      clearTimeout(timeoutCheck);
+      window.removeEventListener('deviceorientation', handleStandardOrientation, true);
     };
   }, []);
 
-  // Compute active calibrated angle in degrees according to user rules:
-  //
-  // 1. CARROSSAGE (CAMBER):
-  //    - Uses smartphone as a precision spirit level (niveau à bulle).
-  //    - Left wheel (FL, RL): Leaning right -> NEGATIVE CAMBER; Leaning left -> POSITIVE CAMBER.
-  //    - Right wheel (FR, RR): Leaning left -> NEGATIVE CAMBER; Leaning right -> POSITIVE CAMBER.
-  //
-  // 2. PINCEMENT (TOE):
-  //    - Uses the smartphone COMPASS (boussole).
-  //    - Calibrate reference on chassis centerline -> differential angle on wheel.
-  //    - Toe-in (pincement, wheel pointing inward) -> Positive (+).
-  //    - Toe-out (ouverture, wheel pointing outward) -> Negative (-).
-  //
-  // 3. CHASSE (CASTER):
-  //    - Kingpin tilt inclination.
-
+  // Compute active calibrated angle in degrees:
   const isLeftWheel = selectedWheel === 'FL' || selectedWheel === 'RL';
   let liveAngle = 0;
 
-  if (simulationMode) {
-    if (activeMeasurement === 'camber') {
-      // In simulation mode, simRoll represents physical tilt of the phone (positive = tilt right)
-      // Left wheel: tilt right -> negative camber
-      // Right wheel: tilt left (simRoll < 0) -> negative camber
-      if (isLeftWheel) {
-        liveAngle = -simRoll;
-      } else {
-        liveAngle = simRoll;
-      }
-    } else if (activeMeasurement === 'toe') {
-      // Toe simulation: simYaw
-      if (calibration.referenceChassisYaw !== null) {
-        let diff = simYaw - calibration.referenceChassisYaw;
-        while (diff > 180) diff -= 360;
-        while (diff < -180) diff += 360;
-        liveAngle = isLeftWheel ? diff : -diff;
-      } else {
-        liveAngle = simYaw;
-      }
+  if (activeMeasurement === 'camber') {
+    // Level tilt to the right relative to calibrated zero (Tare)
+    const effectiveTiltRight = sensorValues.roll - calibration.zeroRoll;
+    if (isLeftWheel) {
+      liveAngle = -effectiveTiltRight;
     } else {
-      liveAngle = simPitch;
+      liveAngle = effectiveTiltRight;
+    }
+  } else if (activeMeasurement === 'toe') {
+    // Toe measurement using PURE COMPASS (boussole):
+    const currentHeading = sensorValues.compassHeading;
+
+    if (calibration.referenceChassisYaw !== null) {
+      let diff = currentHeading - calibration.referenceChassisYaw;
+      while (diff > 180) diff -= 360;
+      while (diff < -180) diff += 360;
+      liveAngle = isLeftWheel ? diff : -diff;
+    } else {
+      let diff = currentHeading - calibration.zeroYaw;
+      while (diff > 180) diff -= 360;
+      while (diff < -180) diff += 360;
+      liveAngle = isLeftWheel ? diff : -diff;
     }
   } else {
-    if (activeMeasurement === 'camber') {
-      // Level tilt to the right relative to calibrated zero (Tare)
-      const effectiveTiltRight = sensorValues.roll - calibration.zeroRoll;
-
-      // User exact requirement:
-      // "lorsque je mesure la roue gauche et que je penche le smartphone à droite il faut que la mesure soit négative
-      //  et lorsque je mesure la roue droite et que je penche le smartphone à gauche il faut que la mesure soit négative aussi."
-      if (isLeftWheel) {
-        liveAngle = -effectiveTiltRight;
-      } else {
-        liveAngle = effectiveTiltRight;
-      }
-    } else if (activeMeasurement === 'toe') {
-      // Toe measurement using COMPASS (boussole):
-      const currentHeading = sensorValues.compassHeading;
-
-      if (calibration.referenceChassisYaw !== null) {
-        // Difference between wheel heading and chassis reference heading
-        let diff = currentHeading - calibration.referenceChassisYaw;
-        while (diff > 180) diff -= 360;
-        while (diff < -180) diff += 360;
-
-        // On Left wheel, pointing inward (clockwise) -> Pincement (positive)
-        // On Right wheel, pointing inward (counter-clockwise) -> Pincement (positive)
-        liveAngle = isLeftWheel ? diff : -diff;
-      } else {
-        // If no chassis reference has been calibrated yet, show relative heading or zero
-        let diff = currentHeading - calibration.zeroYaw;
-        while (diff > 180) diff -= 360;
-        while (diff < -180) diff += 360;
-        liveAngle = isLeftWheel ? diff : -diff;
-      }
+    // Caster (Chasse): Spirit level along steering knuckle (axe de la fusée)
+    let rawCasterTilt = 0;
+    if (Math.abs(sensorValues.rawRoll) >= Math.abs(sensorValues.rawPitch)) {
+      rawCasterTilt = sensorValues.roll - calibration.zeroRoll;
     } else {
-      // Caster (Chasse): Spirit level along steering knuckle (axe de la fusée)
-      // When placing the screen or back of the smartphone flat against the wheel,
-      // tilting forward or backward moves the tilt in the phone's plane (roll / ax).
-      // If the phone is applied with its side/edge against the wheel, tilt is in pitch (az).
-      let rawCasterTilt = 0;
-      if (Math.abs(sensorValues.rawRoll) >= Math.abs(sensorValues.rawPitch)) {
-        rawCasterTilt = sensorValues.roll - calibration.zeroRoll;
-      } else {
-        rawCasterTilt = sensorValues.pitch - calibration.zeroPitch;
-      }
-      liveAngle = rawCasterTilt;
+      rawCasterTilt = sensorValues.pitch - calibration.zeroPitch;
     }
+    liveAngle = rawCasterTilt;
   }
 
   // Apply user-defined polarity inversion (+ / -) if active
@@ -487,8 +443,6 @@ export function useDeviceSensors(
   return {
     permissionState,
     hasRealSensors,
-    simulationMode,
-    setSimulationMode,
     requestSensorPermission,
     sensorValues,
     calibration,
@@ -507,12 +461,5 @@ export function useDeviceSensors(
     isSignReversed: invertedSigns[activeMeasurement],
     toggleSignReversed: () => toggleInvertSign(activeMeasurement),
     invertedSigns,
-    // Simulation controls for desktop / iframe
-    simRoll,
-    setSimRoll,
-    simYaw,
-    setSimYaw,
-    simPitch,
-    setSimPitch,
   };
 }

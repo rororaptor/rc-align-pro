@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   Lock,
+  FileText,
 } from 'lucide-react';
 import { ThemeMode, Vehicle } from '../types';
 import { usePWAInstall } from '../hooks/usePWAInstall';
@@ -26,6 +27,7 @@ interface HeaderProps {
   onOpenSetupsModal: () => void;
   onOpenCloudModal: () => void;
   onExportCsv: () => void;
+  onOpenPdfModal?: () => void;
   isCloudConnected: boolean;
   syncCode: string;
   isWakeLocked: boolean;
@@ -44,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSetupsModal,
   onOpenCloudModal,
   onExportCsv,
+  onOpenPdfModal,
   isCloudConnected,
   syncCode,
   isWakeLocked,
@@ -191,10 +194,22 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">Setups</span>
           </button>
 
+          {/* Quick Export PDF Setup Sheet */}
+          {onOpenPdfModal && (
+            <button
+              onClick={onOpenPdfModal}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-1.5 font-bold transition shadow-sm"
+              title="Générer et télécharger la fiche de réglages complète sous format PDF (Format A4 officiel)"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Fiche PDF</span>
+            </button>
+          )}
+
           {/* Quick Export CSV */}
           <button
             onClick={onExportCsv}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-1.5 font-medium transition"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/60 text-slate-300 text-xs flex items-center gap-1.5 font-medium transition"
             title="Exporter le setup actuel en fichier CSV"
           >
             <Download className="w-3.5 h-3.5" />

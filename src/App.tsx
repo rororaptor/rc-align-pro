@@ -11,6 +11,7 @@ import { MeasureView } from './components/MeasureView';
 import { VehicleManagerModal } from './components/VehicleManagerModal';
 import { SetupsHistoryModal } from './components/SetupsHistoryModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
+import { SetupPdfModal } from './components/SetupPdfModal';
 import { useDeviceSensors } from './hooks/useDeviceSensors';
 import { useCloudSync } from './hooks/useCloudSync';
 import { exportSetupToCSV } from './utils/exportCsv';
@@ -42,6 +43,7 @@ export default function App() {
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isSetupsModalOpen, setIsSetupsModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isWakeLocked, setIsWakeLocked] = useState(false);
 
   // Cloud Sync hook
@@ -64,8 +66,6 @@ export default function App() {
   // Sensors & Inclinometer hook
   const {
     hasRealSensors,
-    simulationMode,
-    setSimulationMode,
     requestSensorPermission,
     sensorValues,
     calibration,
@@ -81,12 +81,6 @@ export default function App() {
     handleLockOrientationWithFullscreen,
     isSignReversed,
     toggleSignReversed,
-    simRoll,
-    setSimRoll,
-    simYaw,
-    setSimYaw,
-    simPitch,
-    setSimPitch,
   } = useDeviceSensors(activeMeasurement, selectedWheel);
 
   // Save theme
@@ -216,6 +210,7 @@ export default function App() {
         onOpenSetupsModal={() => setIsSetupsModalOpen(true)}
         onOpenCloudModal={() => setIsCloudModalOpen(true)}
         onExportCsv={() => exportSetupToCSV(activeVehicle, activeSetup)}
+        onOpenPdfModal={() => setIsPdfModalOpen(true)}
         isCloudConnected={isCloudConnected}
         syncCode={syncCode}
         isWakeLocked={isWakeLocked}
@@ -226,8 +221,8 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto p-3 sm:p-5 space-y-4">
-        {/* Quick Help & Sensor Banner if permission not requested */}
-        {!hasRealSensors && !simulationMode && (
+        {/* Quick Help & Sensor Banner if sensors not yet activated */}
+        {!hasRealSensors && (
           <div className="bg-sky-950/70 border border-sky-500/40 rounded-xl p-3 text-xs flex items-center justify-between gap-2 text-sky-200">
             <div className="flex items-center gap-2">
               <Radio className="w-4 h-4 text-sky-400 animate-pulse" />
@@ -278,9 +273,8 @@ export default function App() {
               onSelectMeasurement={setActiveMeasurement}
               displayAngle={displayAngle}
               rawCalculatedAngle={rawCalculatedAngle}
-              compassHeading={sensorValues.compassHeading}
+              sensorValues={sensorValues}
               referenceChassisYaw={calibration.referenceChassisYaw}
-              isLevelActive={sensorValues.isLevelActive}
               isOrientationLocked={isOrientationLocked}
               onLockOrientation={handleLockOrientationWithFullscreen}
               isSignReversed={isSignReversed}
@@ -293,14 +287,6 @@ export default function App() {
               isHeld={isHeld}
               onToggleHold={() => toggleHold(rawCalculatedAngle)}
               onSaveMeasurement={handleSaveMeasurement}
-              simulationMode={simulationMode}
-              setSimulationMode={setSimulationMode}
-              simRoll={simRoll}
-              setSimRoll={setSimRoll}
-              simYaw={simYaw}
-              setSimYaw={setSimYaw}
-              simPitch={simPitch}
-              setSimPitch={setSimPitch}
               theme={theme}
             />
 
@@ -317,7 +303,7 @@ export default function App() {
                 </li>
                 <li className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                   <strong className="text-emerald-400 block mb-1">2. Pincement :</strong>
-                  Capteur boussole : étalonnez le zéro au centre du châssis, puis appliquez contre la roue. Bouton « ± Signe » si inversé.
+                  Boussole pure : posez le smartphone bien à plat (vérifiez le niveau circulaire), appuyez sur Tare (0.0°), puis mesurez la roue.
                 </li>
                 <li className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                   <strong className="text-emerald-400 block mb-1">3. Chasse (Fusée) :</strong>
@@ -341,6 +327,7 @@ export default function App() {
               activeMeasurement={activeMeasurement}
               onSelectMeasurement={setActiveMeasurement}
               onMirrorWheels={handleMirrorWheels}
+              onExportPdf={() => setIsPdfModalOpen(true)}
             />
 
             {/* Target Specifications Summary Table */}
@@ -431,6 +418,14 @@ export default function App() {
         connectedDevices={connectedDevices}
         syncError={syncError}
         onTriggerSync={triggerManualSync}
+      />
+
+      {/* PDF Setup Sheet Generation & Print Modal */}
+      <SetupPdfModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        vehicle={activeVehicle}
+        setup={activeSetup}
       />
     </div>
   );

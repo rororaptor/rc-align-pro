@@ -70,30 +70,9 @@ export function playHoldSound() {
   }
 }
 
+// Target sound removed as requested by user ("retirer le son de la cible")
 export function playInRangeSound() {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.15); // D6
-
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.19);
-
-    triggerHaptic([20, 20]);
-  } catch {
-    // ignore
-  }
+  // No sound when reaching target range
 }
 
 export function triggerHaptic(pattern: number | number[]) {

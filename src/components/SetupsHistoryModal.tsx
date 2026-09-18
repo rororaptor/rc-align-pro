@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Vehicle, VehicleSetupSheet } from '../types';
 import { exportSetupToCSV } from '../utils/exportCsv';
-import { X, Plus, Download, Copy, Trash2, Calendar, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { downloadSetupPdf } from '../utils/exportPdf';
+import { X, Plus, Download, Copy, Trash2, Calendar, CheckCircle2, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface SetupsHistoryModalProps {
   isOpen: boolean;
@@ -209,9 +210,17 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
+                        onClick={() => downloadSetupPdf(vehicle, setup)}
+                        title="Télécharger la fiche de réglages complète au format PDF"
+                        className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-1 font-bold transition"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="hidden sm:inline">PDF</span>
+                      </button>
+                      <button
                         onClick={() => exportSetupToCSV(vehicle, setup)}
                         title="Télécharger le fichier CSV"
-                        className="p-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/60 text-xs flex items-center gap-1"
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-700/60 text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">CSV</span>

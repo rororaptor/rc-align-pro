@@ -20,12 +20,32 @@
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950 min-h-screen overflow-x-hidden">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js');
+      // Unconditionally purge all service workers and caches to prevent duplicate React runtime instances
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          });
+          if (navigator.serviceWorker.controller && !sessionStorage.getItem('sw_purged_v2')) {
+            sessionStorage.setItem('sw_purged_v2', 'true');
+            window.location.reload();
+          }
         }
-        </script>
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var j = 0; j < names.length; j++) {
+              caches.delete(names[j]);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('SW purge error', e);
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
 
