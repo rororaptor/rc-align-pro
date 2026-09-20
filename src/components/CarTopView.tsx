@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { WheelPosition, AngleMeasurementType, VehicleSetupSheet, Vehicle } from '../types';
-import { CHASSIS_PRESETS } from '../data/chassisPresets';
+import { CHASSIS_PRESETS, createDefaultVehicle } from '../data/chassisPresets';
 import { Wrench, Layers } from 'lucide-react';
 
 export type VehicleArchetype = 'touring' | 'buggy_tt' | 'drift' | 'pan_car' | 'crawler' | 'f1';
 
 interface CarTopViewProps {
-  vehicle: Vehicle;
-  activeSetup: VehicleSetupSheet;
-  selectedWheel: WheelPosition;
-  onSelectWheel: (pos: WheelPosition) => void;
-  activeMeasurement: AngleMeasurementType;
+  vehicle?: Vehicle;
+  activeSetup?: VehicleSetupSheet;
+  selectedWheel?: WheelPosition;
+  onSelectWheel?: (pos: WheelPosition) => void;
+  activeMeasurement?: AngleMeasurementType;
 }
 
-export function detectVehicleArchetype(vehicle: Vehicle): VehicleArchetype {
+export function detectVehicleArchetype(vehicle?: Vehicle): VehicleArchetype {
+  if (!vehicle) return 'touring';
   const presetId = (vehicle.presetId || '').toLowerCase();
   const name = (vehicle.name || '').toLowerCase();
 
@@ -84,57 +85,64 @@ export const ARCHETYPE_META: Record<
   { label: string; badge: string; desc: string }
 > = {
   touring: {
-    label: 'Châssis Nu 1/10 Touring Piste 4WD',
+    label: 'Bare Chassis 1/10 Touring Track 4WD',
     badge: 'Touring 4WD',
-    desc: 'Platine inférieure carbone, top deck, double courroie, cellules alu, triangles carbone & amortisseurs courts.',
+    desc: 'Carbon fiber lower deck, top deck, dual belts, aluminum bulkheads, carbon A-arms & short shock dampers.',
   },
   buggy_tt: {
-    label: 'Châssis Nu Buggy Tout-Terrain (TT)',
+    label: 'Bare Chassis Off-Road Buggy (TT)',
     badge: 'Buggy TT',
-    desc: 'Platine alu 7075 avec bavettes latérales, diff central, renforts de châssis, tours carbone & gros amortisseurs Big-Bore.',
+    desc: '7075 aluminum chassis plate with mud guards, center differential, chassis braces, carbon shock towers & big-bore shocks.',
   },
   drift: {
-    label: 'Châssis Nu 1/10 Drift RWD',
+    label: 'Bare Chassis 1/10 Drift RWD',
     badge: 'Drift RWD',
-    desc: 'Platine carbone haute flexibilité, crémaillère slide-rack grand angle, moteur haut arrière, sans cardans avant.',
+    desc: 'High-flex carbon lower deck, wide-angle slide-rack steering assembly, high rear motor mount, zero front dogbones.',
   },
   pan_car: {
-    label: 'Châssis Nu 1/12 Pan Car',
+    label: 'Bare Chassis 1/12 Pan Car',
     badge: 'Pan Car 1/12',
-    desc: 'Platine plate graphite ultra-légère, train avant à pivot direct, pod moteur arrière flottant sur rotule avec amortisseur central.',
+    desc: 'Ultra-light graphite flat chassis plate, direct pivot front suspension, floating rear motor pod with central damper.',
   },
   crawler: {
-    label: 'Châssis Nu Scale & Crawler 4x4',
+    label: 'Bare Chassis Scale & Crawler 4x4',
     badge: 'Crawler 4x4',
-    desc: 'Longerons en échelle acier profilés C, boîte de transfert centrale, ponts rigides articulés 4-link & tirants alu.',
+    desc: 'Steel C-channel ladder frame rails, central transfer case, articulated 4-link solid axles & aluminum turnbuckles.',
   },
   f1: {
-    label: 'Châssis Nu 1/10 Formule 1',
-    badge: 'Formule 1',
-    desc: 'Platine étroite en carbone, train avant F1 à ressorts intégrés, pod arrière sur biellettes & ailerons de compétition.',
+    label: 'Bare Chassis 1/10 Formula 1',
+    badge: 'Formula 1',
+    desc: 'Narrow carbon plate, F1 front end with integrated coil springs, link-type rear motor pod & aerodynamic wings.',
   },
 };
 
 export const CarTopView: React.FC<CarTopViewProps> = ({
   vehicle,
   activeSetup,
-  selectedWheel,
-  onSelectWheel,
+  selectedWheel = 'FL',
+  onSelectWheel = () => {},
 }) => {
-  const wheels = activeSetup.wheels;
-  const detectedType = detectVehicleArchetype(vehicle);
+  const safeVehicle = vehicle || createDefaultVehicle();
+  const DEFAULT_WHEELS = {
+    FL: { camber: null, toe: null, caster: null, measuredAt: null },
+    FR: { camber: null, toe: null, caster: null, measuredAt: null },
+    RL: { camber: null, toe: null, caster: null, measuredAt: null },
+    RR: { camber: null, toe: null, caster: null, measuredAt: null },
+  };
+  const wheels = activeSetup?.wheels || DEFAULT_WHEELS;
+  const detectedType = detectVehicleArchetype(safeVehicle);
   const [overrideType, setOverrideType] = useState<VehicleArchetype | null>(null);
 
   useEffect(() => {
     setOverrideType(null);
-  }, [vehicle.id, vehicle.presetId]);
+  }, [safeVehicle.id, safeVehicle.presetId]);
 
   const activeArchetype = overrideType || detectedType;
   const meta = ARCHETYPE_META[activeArchetype];
 
   // Visual steer & camber angles
   const getToeAngle = (pos: WheelPosition) => {
-    const toe = wheels[pos].toe ?? 0;
+    const toe = wheels[pos]?.toe ?? 0;
     const factor = 2.4;
     if (pos === 'FL' || pos === 'RL') {
       return toe * factor;
@@ -145,7 +153,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
 
   const getWheelFill = (pos: WheelPosition) => {
     if (selectedWheel === pos) return '#10b981';
-    if (wheels[pos].camber !== null || wheels[pos].toe !== null) return '#334155';
+    if (wheels[pos]?.camber !== null || wheels[pos]?.toe !== null) return '#334155';
     return '#1e293b';
   };
 
@@ -184,7 +192,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
           <Wrench className="w-3.5 h-3.5 text-emerald-400" />
           <span className="font-bold text-slate-200">{vehicle.name}</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            {meta.badge} ({vehicle.scale}) &bull; Châssis Nu
+            {meta.badge} ({vehicle.scale}) &bull; Bare Chassis
           </span>
         </div>
 
@@ -193,14 +201,14 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
           value={activeArchetype}
           onChange={(e) => setOverrideType(e.target.value as VehicleArchetype)}
           className="bg-slate-900 border border-slate-700 text-slate-300 rounded px-2 py-0.5 text-[11px] font-mono focus:outline-none focus:border-emerald-500"
-          title="Sélectionner le type de châssis nu"
+          title="Select bare chassis archetype"
         >
-          <option value="touring">1/10 Touring Piste (4WD)</option>
-          <option value="buggy_tt">Buggy Tout-Terrain (TT)</option>
+          <option value="touring">1/10 Touring Track (4WD)</option>
+          <option value="buggy_tt">Off-Road Buggy (TT)</option>
           <option value="drift">1/10 Drift RWD</option>
           <option value="pan_car">1/12 Pan Car (LMP)</option>
           <option value="crawler">Scale & Crawler 4x4</option>
-          <option value="f1">Formule 1 (F1)</option>
+          <option value="f1">Formula 1 (F1)</option>
         </select>
       </div>
 
@@ -281,7 +289,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
             letterSpacing="2"
             fontFamily="monospace"
           >
-            AVANT &bull; SENS MARCHE
+            FRONT &bull; DIRECTION OF TRAVEL
           </text>
         </g>
 

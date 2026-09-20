@@ -47,8 +47,20 @@ export function generateSetupPdf(
   const marginX = 12;
   const contentWidth = pageWidth - marginX * 2; // 186 mm
 
-  const targets = vehicle.customTargets;
-  const wheels = setup.wheels;
+  const targets = vehicle?.customTargets || {
+    frontCamber: { min: -2.5, max: -1.5 },
+    rearCamber: { min: -2.5, max: -1.5 },
+    frontToe: { min: -1.5, max: 0.0 },
+    rearToe: { min: 2.0, max: 3.5 },
+    frontCaster: { min: 4.0, max: 6.0 },
+  };
+  const DEFAULT_FALLBACK_WHEELS = {
+    FL: { camber: null, toe: null, caster: null, measuredAt: null },
+    FR: { camber: null, toe: null, caster: null, measuredAt: null },
+    RL: { camber: null, toe: null, caster: null, measuredAt: null },
+    RR: { camber: null, toe: null, caster: null, measuredAt: null },
+  };
+  const wheels = setup?.wheels || DEFAULT_FALLBACK_WHEELS;
 
   // Colors
   const darkBg = [15, 23, 42];       // slate-900
@@ -87,13 +99,13 @@ export function generateSetupPdf(
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   doc.setFont('helvetica', 'normal');
-  doc.text('• FICHE OFFICIELLE DE RÉGLAGES & GÉOMÉTRIE', marginX + 63, headerY + 7);
+  doc.text('• OFFICIAL RC CHASSIS SETUP & GEOMETRY SHEET', marginX + 63, headerY + 7);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(203, 213, 225);
   doc.text(
-    `Véhicule : ${vehicle.name}  |  Setup : ${setup.name}  |  Échelle : ${vehicle.scale} (${vehicle.drivetrain})`,
+    `Vehicle : ${vehicle.name}  |  Setup : ${setup.name}  |  Scale : ${vehicle.scale} (${vehicle.drivetrain})`,
     marginX + 7,
     headerY + 14
   );
@@ -102,15 +114,15 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(148, 163, 184);
-  const dateStr = new Date(setup.createdAt).toLocaleDateString('fr-FR', {
+  const dateStr = new Date(setup.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
-  doc.text(`Émis le : ${dateStr}`, marginX + contentWidth - 5, headerY + 8, { align: 'right' });
+  doc.text(`Issued: ${dateStr}`, marginX + contentWidth - 5, headerY + 8, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
-  doc.text(`Empattement : ${vehicle.wheelbaseMm}mm | Voie : ${vehicle.trackWidthMm}mm`, marginX + contentWidth - 5, headerY + 14, { align: 'right' });
+  doc.text(`Wheelbase: ${vehicle.wheelbaseMm}mm | Track Width: ${vehicle.trackWidthMm}mm`, marginX + contentWidth - 5, headerY + 14, { align: 'right' });
 
   // =========================================================================
   // 2. METADATA & CONDITIONS DE PISTE (y: 33 to 53 mm)
@@ -125,12 +137,12 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(15, 23, 42);
-  doc.text('CONDITIONS DE PISTE', marginX + 3, metaY + 4.5);
+  doc.text('TRACK CONDITIONS', marginX + 3, metaY + 4.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(slateText[0], slateText[1], slateText[2]);
-  doc.text(`Revêtement : ${setup.trackCondition || 'Non renseigné'}`, marginX + 3, metaY + 9);
-  doc.text(`Température : ${setup.temperatureC !== undefined ? `${setup.temperatureC}°C` : 'Ambiante'}`, marginX + 3, metaY + 14);
+  doc.text(`Surface : ${setup.trackCondition || 'Unspecified'}`, marginX + 3, metaY + 9);
+  doc.text(`Temperature : ${setup.temperatureC !== undefined ? `${setup.temperatureC}°C` : 'Ambient'}`, marginX + 3, metaY + 14);
 
   // Box 2: Pneumatiques & Traitement
   doc.setFillColor(248, 250, 252);
@@ -138,25 +150,25 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(15, 23, 42);
-  doc.text('PNEUMATIQUES', marginX + colW + 3, metaY + 4.5);
+  doc.text('TIRES & WHEELS', marginX + colW + 3, metaY + 4.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(slateText[0], slateText[1], slateText[2]);
-  const tireLines = doc.splitTextToSize(`Gomme : ${setup.tires || 'Standard / Piste'}`, colW - 8);
+  const tireLines = doc.splitTextToSize(`Compound : ${setup.tires || 'Standard / Track'}`, colW - 8);
   doc.text(tireLines, marginX + colW + 3, metaY + 9);
 
-  // Box 3: Paramètres du Setup Sheet
+  // Box 3: Setup Sheet Parameters
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(marginX + colW * 2, metaY, colW, 18, 1.5, 1.5, 'FD');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(15, 23, 42);
-  doc.text('IDENTIFIANTS FEUILLE', marginX + colW * 2 + 3, metaY + 4.5);
+  doc.text('SHEET IDENTIFIERS', marginX + colW * 2 + 3, metaY + 4.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(slateText[0], slateText[1], slateText[2]);
   doc.text(`ID : ${setup.id.slice(0, 16)}`, marginX + colW * 2 + 3, metaY + 9);
-  doc.text(`Châssis Preset : ${vehicle.presetId}`, marginX + colW * 2 + 3, metaY + 14);
+  doc.text(`Chassis Preset : ${vehicle.presetId}`, marginX + colW * 2 + 3, metaY + 14);
 
   // =========================================================================
   // 3. VISUAL CHASSIS SCHEMATIC WITH WHEEL CALLOUTS (y: 53 to 134 mm)
@@ -174,13 +186,13 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(15, 23, 42);
-  doc.text('SYNTHÈSE GÉOMÉTRIQUE DU CHÂSSIS (VUE D\'ENSEMBLE DU SETUP)', marginX + 4, schematicY + 5.5);
+  doc.text('CHASSIS GEOMETRY OVERVIEW (OVERALL SETUP VIEW)', marginX + 4, schematicY + 5.5);
 
   // Travel direction banner
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
   doc.setTextColor(16, 185, 129);
-  doc.text('AVANT (SENS DE MARCHE ^)', marginX + contentWidth / 2, schematicY + 6.5, { align: 'center' });
+  doc.text('FRONT (DIRECTION OF TRAVEL ^)', marginX + contentWidth / 2, schematicY + 6.5, { align: 'center' });
 
   // Center chassis drawing parameters
   const carCenterX = marginX + contentWidth / 2;
@@ -262,12 +274,12 @@ export function generateSetupPdf(
     doc.setTextColor(255, 255, 255);
     const labelFull =
       pos === 'FL'
-        ? 'AV-G • AVANT GAUCHE'
+        ? 'FL • FRONT LEFT'
         : pos === 'FR'
-        ? 'AV-D • AVANT DROIT'
+        ? 'FR • FRONT RIGHT'
         : pos === 'RL'
-        ? 'AR-G • ARRIÈRE GAUCHE'
-        : 'AR-D • ARRIÈRE DROIT';
+        ? 'RL • REAR LEFT'
+        : 'RR • REAR RIGHT';
     doc.text(labelFull, x + boxW / 2, y + 4, { align: 'center' });
 
     // Lines for Camber, Toe, Caster
@@ -277,7 +289,7 @@ export function generateSetupPdf(
     // Camber Line
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
-    doc.text('Carrossage :', x + 2.5, lineY);
+    doc.text('Camber :', x + 2.5, lineY);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(camberCheck === 'ok' ? 16 : camberCheck === 'warn' ? 217 : 100, camberCheck === 'ok' ? 140 : camberCheck === 'warn' ? 119 : 116, camberCheck === 'ok' ? 90 : 6);
     doc.text(formatAngle(data.camber), x + boxW - 2.5, lineY, { align: 'right' });
@@ -286,7 +298,7 @@ export function generateSetupPdf(
     lineY += 4.5;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
-    doc.text('Pincement :', x + 2.5, lineY);
+    doc.text('Toe :', x + 2.5, lineY);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(toeCheck === 'ok' ? 16 : toeCheck === 'warn' ? 217 : 100, toeCheck === 'ok' ? 140 : toeCheck === 'warn' ? 119 : 116, toeCheck === 'ok' ? 90 : 6);
     doc.text(formatAngle(data.toe), x + boxW - 2.5, lineY, { align: 'right' });
@@ -296,7 +308,7 @@ export function generateSetupPdf(
     if (isFront) {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(100, 116, 139);
-      doc.text('Chasse :', x + 2.5, lineY);
+      doc.text('Caster :', x + 2.5, lineY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(casterCheck === 'ok' ? 16 : casterCheck === 'warn' ? 217 : 100, casterCheck === 'ok' ? 140 : casterCheck === 'warn' ? 119 : 116, casterCheck === 'ok' ? 90 : 6);
       doc.text(formatAngle(data.caster), x + boxW - 2.5, lineY, { align: 'right' });
@@ -304,7 +316,7 @@ export function generateSetupPdf(
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(148, 163, 184);
       doc.setFontSize(5.5);
-      doc.text(`Cible pincement: [${targets.rearToe.min}°, ${targets.rearToe.max}°]`, x + 2.5, lineY);
+      doc.text(`Target toe: [${targets.rearToe.min}°, ${targets.rearToe.max}°]`, x + 2.5, lineY);
     }
   };
 
@@ -344,7 +356,7 @@ export function generateSetupPdf(
   doc.setFontSize(5.8);
   doc.setTextColor(71, 85, 105);
 
-  const deltaText = `Symétrie AV: ΔCarrossage ${frontCamberDelta !== null ? `${frontCamberDelta.toFixed(1)}°` : '-'} | ΔPincement ${frontToeDelta !== null ? `${frontToeDelta.toFixed(1)}°` : '-'}  •  AR: ΔCarrossage ${rearCamberDelta !== null ? `${rearCamberDelta.toFixed(1)}°` : '-'} | ΔPincement ${rearToeDelta !== null ? `${rearToeDelta.toFixed(1)}°` : '-'}`;
+  const deltaText = `Symmetry Front: ΔCamber ${frontCamberDelta !== null ? `${frontCamberDelta.toFixed(1)}°` : '-'} | ΔToe ${frontToeDelta !== null ? `${frontToeDelta.toFixed(1)}°` : '-'}  •  Rear: ΔCamber ${rearCamberDelta !== null ? `${rearCamberDelta.toFixed(1)}°` : '-'} | ΔToe ${rearToeDelta !== null ? `${rearToeDelta.toFixed(1)}°` : '-'}`;
   doc.text(deltaText, carCenterX, schematicY + schematicH - 4, { align: 'center' });
 
   // =========================================================================
@@ -358,18 +370,18 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(15, 23, 42);
-  doc.text('TABLEAU DE MESURES ET ANALYSE DE CONFORMITÉ', marginX, tableY - 2);
+  doc.text('MEASUREMENT TABLE & COMPLIANCE ANALYSIS', marginX, tableY - 2);
 
   // Table Column Definitions
   // Total width: contentWidth (186 mm)
   const cols = [
-    { label: 'ROUE', width: 28 },
-    { label: 'POSITION', width: 34 },
-    { label: 'CARROSSAGE (MESURE)', width: 30 },
-    { label: 'CIBLE CARROSSAGE', width: 28 },
-    { label: 'PINCEMENT (MESURE)', width: 28 },
-    { label: 'CIBLE PINCEMENT', width: 26 },
-    { label: 'CHASSE', width: 12 },
+    { label: 'WHEEL', width: 28 },
+    { label: 'AXLE POSITION', width: 34 },
+    { label: 'CAMBER (ACTUAL)', width: 30 },
+    { label: 'TARGET CAMBER', width: 28 },
+    { label: 'TOE (ACTUAL)', width: 28 },
+    { label: 'TARGET TOE', width: 26 },
+    { label: 'CASTER', width: 12 },
   ];
 
   // Draw Table Header
@@ -390,7 +402,7 @@ export function generateSetupPdf(
   const rowData = [
     {
       code: 'FL',
-      label: 'Train Avant Gauche',
+      label: 'Front Left Wheel',
       data: wheels.FL,
       camberRange: targets.frontCamber,
       toeRange: targets.frontToe,
@@ -399,7 +411,7 @@ export function generateSetupPdf(
     },
     {
       code: 'FR',
-      label: 'Train Avant Droit',
+      label: 'Front Right Wheel',
       data: wheels.FR,
       camberRange: targets.frontCamber,
       toeRange: targets.frontToe,
@@ -408,20 +420,20 @@ export function generateSetupPdf(
     },
     {
       code: 'RL',
-      label: 'Train Arrière Gauche',
+      label: 'Rear Left Wheel',
       data: wheels.RL,
       camberRange: targets.rearCamber,
       toeRange: targets.rearToe,
-      caster: 'Fixe',
+      caster: 'Fixed',
       isFront: false,
     },
     {
       code: 'RR',
-      label: 'Train Arrière Droit',
+      label: 'Rear Right Wheel',
       data: wheels.RR,
       camberRange: targets.rearCamber,
       toeRange: targets.rearToe,
-      caster: 'Fixe',
+      caster: 'Fixed',
       isFront: false,
     },
   ];
@@ -526,7 +538,7 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(15, 23, 42);
-  doc.text('OBSERVATIONS COMPORTEMENT EN PISTE & REMARQUES PILOTE', marginX + 3.5, notesY + 5);
+  doc.text('TRACK BEHAVIOR OBSERVATIONS & DRIVER NOTES', marginX + 3.5, notesY + 5);
 
   // Print existing notes if any, plus lined paper guide for handwritten notes
   doc.setFont('helvetica', 'normal');
@@ -535,7 +547,7 @@ export function generateSetupPdf(
 
   const existingNotes = setup.notes || options.trackNotes || '';
   if (existingNotes) {
-    const wrapped = doc.splitTextToSize(`Notes archivées : ${existingNotes}`, contentWidth - 7);
+    const wrapped = doc.splitTextToSize(`Archived Notes : ${existingNotes}`, contentWidth - 7);
     doc.text(wrapped, marginX + 3.5, notesY + 10);
   }
 
@@ -562,25 +574,25 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(15, 23, 42);
-  doc.text('PILOTE / MÉCANICIEN', marginX + 3, signY + 4.5);
+  doc.text('DRIVER / MECHANIC', marginX + 3, signY + 4.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(148, 163, 184);
-  doc.text('Nom & Signature :', marginX + 3, signY + 9);
+  doc.text('Name & Signature :', marginX + 3, signY + 9);
   doc.text('Date :', marginX + 3, signY + 22);
 
-  // Box Contrôle Technique / Club
+  // Box Scrutineering / Club Technical Inspection
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(marginX + signColW + 4, signY, signColW, signH, 1.5, 1.5, 'FD');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(15, 23, 42);
-  doc.text('CONTRÔLE TECHNIQUE / ARBITRAGE COURSE', marginX + signColW + 7, signY + 4.5);
+  doc.text('TECHNICAL INSPECTION / SCRUTINEERING', marginX + signColW + 7, signY + 4.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(148, 163, 184);
-  doc.text('Visa de conformité marbre & gabarit :', marginX + signColW + 7, signY + 9);
-  doc.text('Statut :  [  ] CONFORME   [  ] NON CONFORME', marginX + signColW + 7, signY + 22);
+  doc.text('Setup board & smartphone compliance check :', marginX + signColW + 7, signY + 9);
+  doc.text('Status :  [  ] PASSED   [  ] FAILED', marginX + signColW + 7, signY + 22);
 
   // =========================================================================
   // 7. FOOTER BAR (y: 284 to 290 mm)
@@ -593,8 +605,8 @@ export function generateSetupPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.setTextColor(148, 163, 184);
-  doc.text('RC ALIGN PRO by rororaptor • Système de mesure et géométrie châssis pour modélisme radio-commandé', marginX, footerY + 4);
-  doc.text('Fiche imprimable standard A4 • Page 1/1', marginX + contentWidth, footerY + 4, { align: 'right' });
+  doc.text('RC ALIGN PRO by rororaptor • Smartphone-based RC Chassis Setup & Geometry System', marginX, footerY + 4);
+  doc.text('Standard A4 Printable Sheet • Page 1/1', marginX + contentWidth, footerY + 4, { align: 'right' });
 
   return doc;
 }
@@ -611,7 +623,7 @@ export function downloadSetupPdf(
   const safeVehName = vehicle.name.replace(/[^a-zA-Z0-9_-]/g, '_');
   const safeSetupName = setup.name.replace(/[^a-zA-Z0-9_-]/g, '_');
   const dateStr = new Date(setup.createdAt).toISOString().slice(0, 10);
-  const fileName = `Fiche_Setup_${safeVehName}_${safeSetupName}_${dateStr}.pdf`;
+  const fileName = `Setup_Sheet_${safeVehName}_${safeSetupName}_${dateStr}.pdf`;
 
   doc.save(fileName);
   return fileName;

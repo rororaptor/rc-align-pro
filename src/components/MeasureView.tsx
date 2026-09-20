@@ -5,8 +5,11 @@ import {
   Vehicle,
   VehicleSetupSheet,
   ThemeMode,
+  AppSettings,
 } from '../types';
 import { SensorData } from '../hooks/useDeviceSensors';
+import { getTranslation, formatAngleValue } from '../utils/i18n';
+import { playTargetReachedSound, triggerTargetVibration } from '../utils/soundAndHaptics';
 import {
   RotateCcw,
   Lock,
@@ -14,10 +17,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Save,
-  Compass,
   Smartphone,
   ShieldCheck,
-  Navigation,
   ArrowRight,
   ArrowLeft,
   Layers,
@@ -47,6 +48,7 @@ interface MeasureViewProps {
   onToggleHold: () => void;
   onSaveMeasurement: (angle: number) => void;
   theme: ThemeMode;
+  settings?: AppSettings;
 }
 
 export const MeasureView: React.FC<MeasureViewProps> = ({
@@ -73,55 +75,133 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
   onToggleHold,
   onSaveMeasurement,
   theme,
+  settings,
 }) => {
+  const t = getTranslation(settings?.language || 'system');
+  const targetColor = settings?.targetColor || '#10b981';
   const isFront = selectedWheel === 'FL' || selectedWheel === 'FR';
   const isLeftWheel = selectedWheel === 'FL' || selectedWheel === 'RL';
 
   // Target tolerances from vehicle custom specs
+  const safeTargets = vehicle?.customTargets || {
+    frontCamber: { min: -2.5, max: -1.5 },
+    rearCamber: { min: -2.5, max: -1.5 },
+    frontToe: { min: -1.5, max: 0.0 },
+    rearToe: { min: 2.0, max: 3.5 },
+    frontCaster: { min: 4.0, max: 6.0 },
+  };
+
   let targetRange = { min: -2.5, max: -1.5 };
-  let targetTitle = 'Carrossage Recommandé';
+  let targetTitle = t.camber;
 
   if (activeMeasurement === 'camber') {
-    targetRange = isFront ? vehicle.customTargets.frontCamber : vehicle.customTargets.rearCamber;
-    targetTitle = isFront ? 'Carrossage Avant Recommandé' : 'Carrossage Arrière Recommandé';
+    targetRange = (isFront ? safeTargets.frontCamber : safeTargets.rearCamber) || targetRange;
+    targetTitle = isFront ? t.frontAxleCamber : t.rearAxleCamber;
   } else if (activeMeasurement === 'toe') {
-    targetRange = isFront ? vehicle.customTargets.frontToe : vehicle.customTargets.rearToe;
-    targetTitle = isFront ? 'Pincement / Ouverture Avant' : 'Pincement Arrière';
+    targetRange = (isFront ? safeTargets.frontToe : safeTargets.rearToe) || { min: -1.5, max: 0.0 };
+    targetTitle = isFront ? t.frontAxleToe : t.rearAxleToe;
   } else {
-    targetRange = vehicle.customTargets.frontCaster;
-    targetTitle = 'Angle de Chasse Recommandé';
+    targetRange = safeTargets.frontCaster || { min: 4.0, max: 6.0 };
+    targetTitle = t.frontCasterAngle;
   }
 
   const safeAngle = Math.abs(displayAngle) < 0.05 ? 0 : displayAngle;
   const isInRange = safeAngle >= targetRange.min && safeAngle <= targetRange.max;
   const isUnder = safeAngle < targetRange.min;
 
-  // Visual linear bubble level offset (-15° to +15° clamped to percentage)
-  const clampedAngleForLevel = Math.max(-15, Math.min(15, safeAngle));
-  const bubblePositionPercent = 50 + (clampedAngleForLevel / 15) * 42;
-
-  // Cardinal direction helper for compass
-  const getCardinalDirection = (deg: number) => {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
-    const idx = Math.round(((deg % 360) / 45)) % 8;
-    return directions[idx];
-  };
+  // Sound and Vibration haptic feedback when entering target
+  const prevInRangeRef = React.useRef(false);
+  React.useEffect(() => {
+    if (isInRange && !prevInRangeRef.current) {
+      if (settings?.targetSoundEnabled) {
+        playTargetReachedSound();
+      }
+      if (settings?.targetVibrationEnabled) {
+        triggerTargetVibration();
+      }
+    }
+    prevInRangeRef.current = isInRange;
+  }, [isInRange, settings?.targetSoundEnabled, settings?.targetVibrationEnabled]);
 
   // Wheel labels
   const wheelLabels: Record<WheelPosition, string> = {
-    FL: 'Avant Gauche (AV-G)',
-    FR: 'Avant Droit (AV-D)',
-    RL: 'Arrière Gauche (AR-G)',
-    RR: 'Arrière Droit (AR-D)',
+    FL: `${t.fl} (${t.flShort})`,
+    FR: `${t.fr} (${t.frShort})`,
+    RL: `${t.rl} (${t.rlShort})`,
+    RR: `${t.rr} (${t.rrShort})`,
   };
 
-  const currentSavedWheel = activeSetup.wheels[selectedWheel];
+  const DEFAULT_WHEEL_DATA = { camber: null, toe: null, caster: null, measuredAt: null };
+  const currentSavedWheel = activeSetup?.wheels?.[selectedWheel] || DEFAULT_WHEEL_DATA;
   const currentSavedVal =
     activeMeasurement === 'camber'
-      ? currentSavedWheel.camber
+      ? currentSavedWheel?.camber ?? null
       : activeMeasurement === 'toe'
-      ? currentSavedWheel.toe
-      : currentSavedWheel.caster;
+      ? currentSavedWheel?.toe ?? null
+      : currentSavedWheel?.caster ?? null;
+
+  // Geometry for the -20° to +20° Needle Inclinometer Dial
+  const dialCx = 170;
+  const dialCy = 195;
+  const dialRLabels = 172;
+  const dialROuter = 154;
+  const dialRInner = 138;
+
+  // Scale factor: ±20° measured corresponds to ±40° visual sweep (2.0° visual per 1° measured)
+  const clampedAngleForNeedle = Math.max(-20, Math.min(20, safeAngle));
+  const needleRotationDeg = clampedAngleForNeedle * 2.0;
+
+  // Precompute dial ticks (-20° to +20°)
+  const dialTicks = [];
+  for (let d = -20; d <= 20; d++) {
+    const angleVisual = d * 2.0;
+    const rad = (angleVisual * Math.PI) / 180;
+    const sin = Math.sin(rad);
+    const cos = Math.cos(rad);
+    const isMajor = d % 5 === 0;
+    const isZero = d === 0;
+
+    const x1 = dialCx + (isMajor ? dialRInner : dialRInner + 4) * sin;
+    const y1 = dialCy - (isMajor ? dialRInner : dialRInner + 4) * cos;
+    const x2 = dialCx + (isMajor ? dialROuter : dialROuter - 4) * sin;
+    const y2 = dialCy - (isMajor ? dialROuter : dialROuter - 4) * cos;
+
+    let labelX = 0;
+    let labelY = 0;
+    if (isMajor) {
+      labelX = dialCx + dialRLabels * sin;
+      labelY = dialCy - dialRLabels * cos;
+    }
+
+    dialTicks.push({
+      deg: d,
+      isMajor,
+      isZero,
+      x1,
+      y1,
+      x2,
+      y2,
+      labelX,
+      labelY,
+    });
+  }
+
+  // Target range sector highlighting
+  const tMin = Math.max(-20, Math.min(20, targetRange.min));
+  const tMax = Math.max(-20, Math.min(20, targetRange.max));
+  const tMinRad = (tMin * 2.0 * Math.PI) / 180;
+  const tMaxRad = (tMax * 2.0 * Math.PI) / 180;
+
+  const tX1 = dialCx + dialRInner * Math.sin(tMinRad);
+  const tY1 = dialCy - dialRInner * Math.cos(tMinRad);
+  const tX2 = dialCx + dialRInner * Math.sin(tMaxRad);
+  const tY2 = dialCy - dialRInner * Math.cos(tMaxRad);
+  const tX3 = dialCx + dialROuter * Math.sin(tMaxRad);
+  const tY3 = dialCy - dialROuter * Math.cos(tMaxRad);
+  const tX4 = dialCx + dialROuter * Math.sin(tMinRad);
+  const tY4 = dialCy - dialROuter * Math.cos(tMinRad);
+
+  const targetSectorPath = `M ${tX1} ${tY1} A ${dialRInner} ${dialRInner} 0 0 1 ${tX2} ${tY2} L ${tX3} ${dialROuter} A ${dialROuter} ${dialROuter} 0 0 0 ${tX4} ${tY4} Z`;
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-5 backdrop-blur-md shadow-2xl relative overflow-hidden">
@@ -138,7 +218,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span>Carrossage (Niveau)</span>
+            <span>Camber (Level)</span>
           </button>
           <button
             id="tab-toe"
@@ -149,8 +229,8 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Pincement (Boussole)</span>
+            <Layers className="w-3.5 h-3.5" />
+            <span>Toe (Vertical Chassis)</span>
           </button>
           <button
             id="tab-caster"
@@ -165,7 +245,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Chasse (Niveau Fusée)</span>
+            <span>Caster (Knuckle)</span>
           </button>
         </div>
 
@@ -203,12 +283,12 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
           {isOrientationLocked ? (
             <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Rotation Écran Fixée (Portrait)</span>
+              <span>Screen Orientation Locked (Portrait)</span>
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-amber-300 font-medium text-[11px]">
               <Smartphone className="w-3.5 h-3.5" />
-              <span>Rotation libre</span>
+              <span>Free Rotation</span>
             </span>
           )}
           {onLockOrientation && !isOrientationLocked && (
@@ -216,7 +296,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
               onClick={onLockOrientation}
               className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition shadow-sm"
             >
-              Verrouiller Portrait
+              Lock Portrait
             </button>
           )}
         </div>
@@ -231,15 +311,15 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 ? 'bg-purple-950/80 border-purple-500/70 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
                 : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
             }`}
-            title="Cliquez pour inverser instantanément le signe (+ / -) selon le sens de pose du smartphone"
+            title="Click to invert angle sign (+ / -) based on smartphone orientation against the wheel"
           >
             <span className="font-extrabold text-xs">±</span>
-            <span>{isSignReversed ? 'Signe Inversé (-)' : 'Signe Normal (+)'}</span>
+            <span>{isSignReversed ? 'Inverted Sign (-)' : 'Standard Sign (+)'}</span>
           </button>
         )}
       </div>
 
-      {/* Main Digital Gauge & Readout */}
+      {/* Main Inclinometer Needle Dial & Digital Readout */}
       <div className="flex flex-col items-center justify-center my-1 text-center relative py-1">
         {/* Wheel and Measurement Badge */}
         <div className="flex items-center gap-2 mb-1">
@@ -248,148 +328,198 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
           </span>
           {isHeld && (
             <span className="flex items-center gap-1 text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 animate-pulse">
-              <Lock className="w-3 h-3" /> Gelé (Hold)
+              <Lock className="w-3 h-3" /> Frozen (Hold)
             </span>
           )}
           {isSignReversed && (
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-500/30">
-              ± Inversé
+              ± Inverted
             </span>
           )}
         </div>
 
-        {/* Big Degrees Readout */}
-        <div className="relative my-1 select-none">
+        {/* Needle Dial with curved arc from -20° to +20° and tapered blue needle */}
+        <div className="w-full max-w-[340px] mx-auto select-none pt-1 pb-0">
+          <svg
+            viewBox="0 0 340 170"
+            className="w-full h-auto overflow-visible"
+            aria-label="Inclinometer needle dial from -20° to +20°"
+          >
+            <defs>
+              <filter id="dial-needle-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00b8ff" floodOpacity="0.8" />
+              </filter>
+            </defs>
+
+            {/* Curved Arc Background Band */}
+            <path
+              d="M 81.3 89.3 A 138 138 0 0 1 258.7 89.3 L 269.0 77.0 A 154 154 0 0 0 71.0 77.0 Z"
+              fill="rgba(255, 255, 255, 0.05)"
+              stroke="rgba(255, 255, 255, 0.25)"
+              strokeWidth="1.5"
+            />
+
+            {/* Target Zone Arc Highlight */}
+            {tMax > tMin && (
+              <path
+                d={targetSectorPath}
+                fill={targetColor}
+                fillOpacity="0.35"
+                stroke={targetColor}
+                strokeWidth="1.5"
+              />
+            )}
+
+            {/* Scale Graduation Ticks and Degree Labels */}
+            {dialTicks.map((t) => (
+              <g key={t.deg}>
+                <line
+                  x1={t.x1}
+                  y1={t.y1}
+                  x2={t.x2}
+                  y2={t.y2}
+                  stroke={t.isZero ? '#00b8ff' : t.isMajor ? '#f1f5f9' : 'rgba(255, 255, 255, 0.35)'}
+                  strokeWidth={t.isZero ? 2.5 : t.isMajor ? 2.0 : 1.0}
+                  strokeLinecap="round"
+                />
+                {t.isMajor && (
+                  <text
+                    x={t.labelX}
+                    y={t.labelY}
+                    textAnchor="middle"
+                    alignmentBaseline="central"
+                    fill={t.isZero ? '#38bdf8' : '#e2e8f0'}
+                    fontSize="11"
+                    fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
+                    fontWeight={t.isZero ? '800' : '600'}
+                  >
+                    {t.deg > 0 ? `${t.deg}°` : `${t.deg}°`}
+                  </text>
+                )}
+              </g>
+            ))}
+
+            {/* Rotating Needle (Aiguille) with Smooth Dynamic Physics */}
+            <g
+              style={{
+                transform: `rotate(${needleRotationDeg}deg)`,
+                transformOrigin: `${dialCx}px ${dialCy}px`,
+                transition: isHeld ? 'none' : 'transform 90ms cubic-bezier(0.2, 0.8, 0.4, 1)',
+              }}
+            >
+              {/* Tapered Needle */}
+              <path
+                d={`M ${dialCx - 5.5} ${dialCy - 40} L ${dialCx - 1} ${dialCy - 152} L ${dialCx + 1} ${dialCy - 152} L ${dialCx + 5.5} ${dialCy - 40} Z`}
+                fill="#00b8ff"
+                filter="url(#dial-needle-glow)"
+              />
+            </g>
+          </svg>
+        </div>
+
+        {/* Big Digital Degrees Readout below the needle */}
+        <div className="relative my-0 select-none">
           <div
-            className={`font-mono text-6xl sm:text-7xl md:text-8xl font-black tracking-tighter transition-colors duration-150 ${
+            className={`font-mono text-6xl sm:text-7xl font-black tracking-tighter transition-colors duration-150 ${
               isHeld
                 ? 'text-amber-400'
-                : isInRange
-                ? 'text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.35)]'
                 : theme === 'sun_contrast'
                 ? 'text-amber-300'
                 : 'text-white'
             }`}
+            style={!isHeld && isInRange ? { color: targetColor, filter: `drop-shadow(0 0 25px ${targetColor}66)` } : undefined}
           >
-            {safeAngle > 0 ? `+${safeAngle.toFixed(1)}` : safeAngle.toFixed(1)}
-            <span className="text-3xl sm:text-4xl font-normal ml-1 text-slate-400">°</span>
+            {formatAngleValue(safeAngle, settings?.valueFormat || 'decimal', true)}
           </div>
 
-          {/* Subtext description for Toe (Pincement vs Ouverture) */}
+          {/* Subtext description for Toe */}
           {activeMeasurement === 'toe' && (
             <div className="text-xs font-bold uppercase tracking-widest mt-1">
               {safeAngle > 0.1 ? (
                 <span className="text-sky-400 flex items-center justify-center gap-1">
-                  <span>Pincement (Toe-in)</span>
+                  <span>{t.toeIn}</span>
                   <ArrowRight className="w-3.5 h-3.5 inline" />
                   <ArrowLeft className="w-3.5 h-3.5 inline" />
                 </span>
               ) : safeAngle < -0.1 ? (
                 <span className="text-orange-400 flex items-center justify-center gap-1">
-                  <span>Ouverture (Toe-out)</span>
+                  <span>{t.toeOut}</span>
                   <ArrowLeft className="w-3.5 h-3.5 inline" />
                   <ArrowRight className="w-3.5 h-3.5 inline" />
                 </span>
               ) : (
-                <span className="text-slate-400">Neutre (0.0°)</span>
+                <span className="text-slate-400">Zero Toe (0.0°)</span>
               )}
             </div>
           )}
 
-          {/* Subtext description for Camber (Carrossage) */}
+          {/* Subtext description for Camber */}
           {activeMeasurement === 'camber' && (
             <div className="text-xs font-mono text-slate-400 mt-1">
               {safeAngle < -0.1 ? (
-                <span className="text-emerald-400 font-semibold">
-                  Carrossage Négatif (Haut vers l&apos;intérieur)
+                <span className="font-semibold" style={{ color: targetColor }}>
+                  {t.negCamber}
                 </span>
               ) : safeAngle > 0.1 ? (
                 <span className="text-amber-400 font-semibold">
-                  Carrossage Positif (Haut vers l&apos;extérieur)
+                  {t.posCamber}
                 </span>
               ) : (
-                <span>Verticale Parfaite (0.0°)</span>
+                <span>Vertical (0.0°)</span>
               )}
             </div>
           )}
 
-          {/* Subtext description for Caster (Chasse) */}
+          {/* Subtext description for Caster */}
           {activeMeasurement === 'caster' && (
             <div className="text-xs font-mono text-slate-400 mt-1">
               {safeAngle > 0.1 ? (
-                <span className="text-emerald-400 font-semibold">
-                  Chasse Positive (Fusée inclinée vers l&apos;arrière)
+                <span className="font-semibold" style={{ color: targetColor }}>
+                  Positive (+) Caster
                 </span>
               ) : safeAngle < -0.1 ? (
                 <span className="text-amber-400 font-semibold">
-                  Chasse Négative (Fusée inclinée vers l&apos;avant)
+                  Negative (-) Caster
                 </span>
               ) : (
-                <span>Pivot Vertical (0.0°)</span>
+                <span>Vertical Pivot (0.0°)</span>
               )}
             </div>
           )}
         </div>
 
-        {/* Dynamic Bubble Level (Niveau à bulle pour Carrossage et Chasse) */}
-        {activeMeasurement !== 'toe' && (
-          <div className="w-full max-w-sm my-2 px-2">
-            <div className="h-7 rounded-full bg-slate-950 border-2 border-slate-700/80 relative overflow-hidden flex items-center shadow-inner">
-              {/* Center target zero mark */}
-              <div className="absolute inset-y-0 left-1/2 w-0.5 bg-red-500 z-10 -translate-x-1/2" />
-              <div className="absolute inset-y-0 left-[45%] w-0.5 bg-slate-700 z-10" />
-              <div className="absolute inset-y-0 left-[55%] w-0.5 bg-slate-700 z-10" />
-
-              {/* Target zone band */}
-              <div
-                className="absolute inset-y-0 bg-emerald-500/20 border-x border-emerald-500/50"
-                style={{
-                  left: `${Math.max(5, 50 + (targetRange.min / 15) * 42)}%`,
-                  width: `${Math.max(
-                    4,
-                    Math.abs((targetRange.max - targetRange.min) / 15) * 42
-                  )}%`,
-                }}
-              />
-
-              {/* Spirit level bubble */}
-              <div
-                className={`absolute top-1 bottom-1 w-6 -ml-3 rounded-full transition-all duration-75 shadow-md ${
-                  isInRange ? 'bg-emerald-400 ring-2 ring-emerald-300' : 'bg-amber-400 ring-1 ring-amber-300'
-                }`}
-                style={{ left: `${bubblePositionPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1 px-1">
-              <span>-15°</span>
-              <span className="text-slate-400 font-bold">0° (Niveau)</span>
-              <span>+15°</span>
-            </div>
-          </div>
-        )}
-
         {/* Target Range Status Badge */}
-        <div className="flex items-center gap-2 text-xs font-mono my-1">
+        <div className="flex items-center gap-2 text-xs font-mono my-2">
           <span className="text-slate-400">{targetTitle}:</span>
           <span className="font-bold text-slate-200">
-            {targetRange.min}° à {targetRange.max}°
+            {formatAngleValue(targetRange.min, settings?.valueFormat || 'decimal')} {t.to}{' '}
+            {formatAngleValue(targetRange.max, settings?.valueFormat || 'decimal')}
           </span>
           {isInRange ? (
-            <span className="flex items-center gap-1 text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Conforme
+            <span
+              className="flex items-center gap-1 font-bold px-2 py-0.5 rounded border"
+              style={{
+                color: targetColor,
+                borderColor: `${targetColor}66`,
+                backgroundColor: `${targetColor}25`,
+              }}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" /> {t.targetReached}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-amber-400 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40">
-              <AlertCircle className="w-3.5 h-3.5" /> {isUnder ? 'Inférieur' : 'Supérieur'}
+              <AlertCircle className="w-3.5 h-3.5" /> {isUnder ? 'Below' : 'Above'}
             </span>
           )}
         </div>
 
         {/* Current Saved value on active wheel */}
-        <div className="text-[11px] text-slate-400 mt-1">
-          Valeur enregistrée sur {selectedWheel}:{' '}
+        <div className="text-[11px] text-slate-400 mt-0.5">
+          {wheelLabels[selectedWheel]}:{' '}
           <span className="font-mono font-bold text-slate-200">
-            {currentSavedVal !== null ? `${currentSavedVal.toFixed(1)}°` : 'Non mesurée'}
+            {currentSavedVal !== null
+              ? formatAngleValue(currentSavedVal, settings?.valueFormat || 'decimal', true)
+              : '--'}
           </span>
         </div>
       </div>
@@ -405,20 +535,21 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
               ? 'bg-amber-500 border-amber-400 text-slate-950'
               : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
           }`}
-          title="Geler la mesure pour lire facilement le smartphone après l'avoir retiré de la roue"
+          title="Freeze reading to easily read the smartphone after pulling it away from the wheel"
         >
           {isHeld ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-          <span>{isHeld ? 'Débloquer' : 'Geler (Hold)'}</span>
+          <span>{isHeld ? t.frozen : t.hold}</span>
         </button>
 
         {/* Save to Wheel */}
         <button
           id="btn-save-measurement"
           onClick={() => onSaveMeasurement(displayAngle)}
-          className="p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition"
+          className="p-2.5 rounded-xl text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg"
+          style={{ backgroundColor: targetColor }}
         >
           <Save className="w-4 h-4" />
-          <span>Enregistrer</span>
+          <span>{t.save}</span>
         </button>
 
         {/* Quick Tare Zero / Chassis Tare */}
@@ -432,12 +563,14 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
           }`}
           title={
             activeMeasurement === 'toe'
-              ? 'Calibrer le zéro référence châssis (0.0°) sur la boussole'
-              : 'Remise à zéro relative du niveau à bulle sur le banc de réglage'
+              ? 'Calibrate relative zero on vertical chassis centerline (0.0°)'
+              : activeMeasurement === 'caster'
+              ? 'Tare 0.0° on flat workbench / setup board'
+              : 'Relative zero tare on setup board'
           }
         >
           <RotateCcw className={`w-4 h-4 ${activeMeasurement === 'toe' ? 'text-sky-400' : 'text-emerald-400'}`} />
-          <span>{activeMeasurement === 'toe' ? 'Tare Zéro Châssis (0.0°)' : 'Tare (0.0°)'}</span>
+          <span>{activeMeasurement === 'toe' ? 'Tare Chassis (0.0°)' : 'Tare (0.0°)'}</span>
         </button>
 
         {/* Invert Sign Toggle (+/-) */}
@@ -449,39 +582,39 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
               ? 'bg-purple-900/80 border-purple-500/80 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
               : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
           }`}
-          title="Inverser le signe (+/-) selon la façon dont le smartphone est penché"
+          title="Invert angle polarity (+/-) based on smartphone tilt orientation"
         >
           <span className="font-mono font-black text-sm text-purple-400">±</span>
-          <span>{isSignReversed ? 'Signe : Inversé (-)' : 'Signe : Normal (+)'}</span>
+          <span>{isSignReversed ? 'Sign: Inverted (-)' : 'Sign: Standard (+)'}</span>
         </button>
       </div>
 
-      {/* Special Camber (Carrossage) Banner & Convention */}
+      {/* Special Camber Banner & Convention */}
       {activeMeasurement === 'camber' && (
         <div className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-left mb-2">
           <div className="flex items-center justify-between text-[11px] font-mono mb-1">
             <span className="text-slate-300 font-bold">
-              {isLeftWheel ? 'Côté Gauche (AV-G / AR-G)' : 'Côté Droit (AV-D / AR-D)'}
+              {isLeftWheel ? 'Left Side (FL / RL)' : 'Right Side (FR / RR)'}
             </span>
-            <span className="text-emerald-400 font-semibold">Niveau à bulle actif</span>
+            <span className="text-emerald-400 font-semibold">Active Inclinometer • 0.5° Steps</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
             {isLeftWheel ? (
               <>
-                Penchez le smartphone à <strong className="text-emerald-300">droite</strong> (vers l&apos;intérieur du châssis) &rarr; la mesure est <strong className="text-emerald-300">négative (-)</strong>.
+                Tilt the smartphone to the <strong className="text-emerald-300">right</strong> (toward chassis centerline) &rarr; reading is <strong className="text-emerald-300">negative (-)</strong>.
               </>
             ) : (
               <>
-                Penchez le smartphone à <strong className="text-emerald-300">gauche</strong> (vers l&apos;intérieur du châssis) &rarr; la mesure est <strong className="text-emerald-300">négative (-)</strong>.
+                Tilt the smartphone to the <strong className="text-emerald-300">left</strong> (toward chassis centerline) &rarr; reading is <strong className="text-emerald-300">negative (-)</strong>.
               </>
             )}
             <br />
-            Si besoin d&apos;inverser selon votre position, cliquez sur <strong className="text-purple-300">« ± Signe »</strong> ci-dessus.
+            If you need to invert polarity for your holding position, tap <strong className="text-purple-300">« ± Sign »</strong> above.
           </p>
         </div>
       )}
 
-      {/* Special Caster (Chasse) Banner: Screen or Back on Wheel along Knuckle axis */}
+      {/* Special Caster Banner: Wheels removed, chassis flat on table, edge against knuckle */}
       {activeMeasurement === 'caster' && (
         <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-3.5 my-3 shadow-lg text-left">
           <div className="flex items-center justify-between mb-2">
@@ -491,10 +624,10 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
               </div>
               <div>
                 <h3 className="font-bold text-xs text-slate-200">
-                  Mesure de la Chasse par Niveau à Bulle (Axe de la Fusée)
+                  Caster Measurement (Steering Knuckle Pivot Axis without Wheels)
                 </h3>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  Smartphone plaqué contre la roue {selectedWheel}
+                  Knuckle {selectedWheel} • 0.5° Resolution
                 </span>
               </div>
             </div>
@@ -503,163 +636,81 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 onClick={onToggleSignReversed}
                 className="px-2.5 py-1 bg-purple-950/80 border border-purple-500/60 text-purple-300 text-[11px] font-mono font-bold rounded-lg transition"
               >
-                ± {isSignReversed ? 'Inversé (-)' : 'Normal (+)'}
+                ± {isSignReversed ? 'Inverted (-)' : 'Standard (+)'}
               </button>
             )}
           </div>
-          <p className="text-xs text-slate-300 mb-2 leading-relaxed">
-            <strong>1.</strong> Plaquez <strong className="text-emerald-400">l&apos;écran ou le dos du smartphone</strong> à plat contre la jante de la roue.<br />
-            <strong>2.</strong> Penchez le smartphone <strong className="text-emerald-400">en avant ou en arrière</strong> en l&apos;alignant dans l&apos;axe de la fusée (porte-fusée / kingpin).<br />
-            <strong>3.</strong> Utilisez le bouton <strong className="text-purple-400">« ± Signe »</strong> pour ajuster positif ou négatif selon la façon dont vous penchez le smartphone.
+          <div className="space-y-1.5 text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80 mb-2">
+            <p>
+              <strong className="text-emerald-400 font-mono">1. Remove front wheels:</strong> Take off front wheels to gain direct, flat access to the knuckles.
+            </p>
+            <p>
+              <strong className="text-emerald-400 font-mono">2. Chassis flat:</strong> Place the chassis flat on the workbench or setup board. Tap <strong className="text-emerald-300">« Tare (0.0°) »</strong> to calibrate horizontal reference if needed.
+            </p>
+            <p>
+              <strong className="text-emerald-400 font-mono">3. Measure against knuckle:</strong> Rest the right or left edge of the smartphone flush against the steering knuckle (kingpin pivot axis).
+            </p>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            The caster angle is indicated directly on the inclinometer dial. Use <strong className="text-purple-300">« ± Sign »</strong> if polarity is inverted for the phone edge used.
           </p>
         </div>
       )}
 
-      {/* Special Toe (Pincement) Compass Banner & Controller with 2D Bullseye Level */}
+      {/* Special Toe Banner: Chassis vertical + smartphone edge on wheel */}
       {activeMeasurement === 'toe' && (
         <div className="bg-slate-950 border border-sky-500/40 rounded-xl p-3.5 my-3 shadow-lg text-left">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-lg bg-sky-500/20 text-sky-400">
-                <Compass className="w-4 h-4" />
+                <Layers className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="font-bold text-xs text-slate-200">
-                  Mesure du Pincement par Boussole pure (Magnétomètre isolé)
+                  Toe Measurement with Smartphone Inclinometer (Chassis Vertical)
                 </h3>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  Cap Boussole direct : {sensorValues.compassHeading.toFixed(1)}° ({getCardinalDirection(sensorValues.compassHeading)})
+                  Smartphone edge against wheel {selectedWheel} • 0.5° Increments
                 </span>
               </div>
             </div>
             {hasChassisToeReference ? (
               <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40">
-                Châssis : {referenceChassisYaw?.toFixed(1)}°
+                Chassis Ref: {referenceChassisYaw !== null ? `${referenceChassisYaw > 0 ? '+' : ''}${referenceChassisYaw.toFixed(1)}°` : '0.0°'}
               </span>
             ) : (
               <span className="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/40">
-                Tare Zéro Requise
+                Chassis Tare Required
               </span>
             )}
           </div>
 
-          {/* USER REQUIREMENT: 2D Circular Bullseye Level for Compass Flatness */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 my-2 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              {/* Circular Bullseye Target */}
-              <div className="relative w-20 h-20 rounded-full bg-slate-950 border-2 border-slate-700 flex items-center justify-center overflow-hidden shadow-inner shrink-0">
-                {/* Crosshairs */}
-                <div className="absolute inset-x-0 top-1/2 h-px bg-slate-700 -translate-y-1/2" />
-                <div className="absolute inset-y-0 left-1/2 w-px bg-slate-700 -translate-x-1/2" />
-                {/* Concentric rings */}
-                <div className="w-14 h-14 rounded-full border border-slate-800" />
-                <div
-                  className={`w-7 h-7 rounded-full border transition-colors ${
-                    sensorValues.isFlat
-                      ? 'border-emerald-500/80 bg-emerald-500/10'
-                      : 'border-amber-500/60'
-                  }`}
-                />
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-600" />
-
-                {/* 2D Moving Bubble */}
-                <div
-                  className={`absolute w-5 h-5 rounded-full transition-all duration-75 -translate-x-1/2 -translate-y-1/2 ${
-                    sensorValues.isFlat
-                      ? 'bg-emerald-400 ring-2 ring-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.8)]'
-                      : 'bg-amber-400 ring-1 ring-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
-                  }`}
-                  style={{
-                    left: `calc(50% + ${Math.max(-28, Math.min(28, (sensorValues.flatRoll / 6) * 28))}px)`,
-                    top: `calc(50% + ${Math.max(-28, Math.min(28, (sensorValues.flatPitch / 6) * 28))}px)`,
-                  }}
-                />
-              </div>
-
-              {/* Flatness Status & Degree Details */}
-              <div className="text-left">
-                <div className="flex items-center gap-1.5 mb-1">
-                  {sensorValues.isFlat ? (
-                    <span className="flex items-center gap-1 text-emerald-400 font-bold text-xs">
-                      <CheckCircle2 className="w-4 h-4" /> Smartphone bien à plat ({sensorValues.flatTiltDegrees.toFixed(1)}°)
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-amber-400 font-bold text-xs">
-                      <AlertCircle className="w-4 h-4" /> Smartphone incliné ({sensorValues.flatTiltDegrees.toFixed(1)}°)
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-400 leading-tight">
-                  {sensorValues.isFlat ? (
-                    <span className="text-emerald-300/90 font-medium">Boussole parfaitement horizontale : mesure précise.</span>
-                  ) : (
-                    <span>Maintenez le smartphone bien à plat (bulle au centre) pour que la boussole soit exacte.</span>
-                  )}
-                </p>
-                <div className="flex gap-3 text-[10px] font-mono text-slate-500 mt-1">
-                  <span>Roulis : {sensorValues.flatRoll > 0 ? `+${sensorValues.flatRoll.toFixed(1)}°` : `${sensorValues.flatRoll.toFixed(1)}°`}</span>
-                  <span>Tangage : {sensorValues.flatPitch > 0 ? `+${sensorValues.flatPitch.toFixed(1)}°` : `${sensorValues.flatPitch.toFixed(1)}°`}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Tare button linked directly to Tare Zero */}
-            <button
-              onClick={calibrateZero}
-              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow shrink-0 w-full sm:w-auto justify-center"
-              title="Calibrer le zéro référence châssis (0.0°) sur la boussole"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Tare 0° (Zéro Châssis)</span>
-            </button>
+          <div className="space-y-1.5 text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80 mb-2.5">
+            <p>
+              <strong className="text-sky-400 font-mono">1. Vertical chassis:</strong> Position the chassis vertically relative to the setup board (standing upright on its tail or held perpendicular).
+            </p>
+            <p>
+              <strong className="text-sky-400 font-mono">2. Tare reference:</strong> Hold one edge (left or right) of the smartphone against the chassis spine/centerline, then tap <strong className="text-sky-300">« Tare Chassis (0.0°) »</strong>.
+            </p>
+            <p>
+              <strong className="text-sky-400 font-mono">3. Measure wheel:</strong> Hold the same smartphone edge against the wheel rim of wheel {selectedWheel}. The inclinometer measures Toe-In (+) or Toe-Out (-) with high precision.
+            </p>
           </div>
-
-          {/* Compass Visual Heading Dial */}
-          <div className="flex items-center justify-around bg-slate-900/80 border border-slate-800 rounded-lg p-2 my-2 text-xs font-mono">
-            <div className="text-center">
-              <span className="text-[10px] text-slate-400 block">Cap Châssis (Zéro)</span>
-              <span className="font-bold text-sky-300">
-                {hasChassisToeReference && referenceChassisYaw !== null
-                  ? `${referenceChassisYaw.toFixed(1)}°`
-                  : 'À calibrer'}
-              </span>
-            </div>
-            <div className="h-6 w-px bg-slate-800" />
-            <div className="text-center">
-              <span className="text-[10px] text-slate-400 block">Cap Roue {selectedWheel}</span>
-              <span className="font-bold text-emerald-400">
-                {sensorValues.compassHeading.toFixed(1)}°
-              </span>
-            </div>
-            <div className="h-6 w-px bg-slate-800" />
-            <div className="text-center">
-              <span className="text-[10px] text-slate-400 block">Pincement Calculé</span>
-              <span className="font-extrabold text-white">
-                {safeAngle > 0 ? `+${safeAngle.toFixed(1)}°` : `${safeAngle.toFixed(1)}°`}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-400 mb-2 leading-relaxed">
-            <strong>Étape 1 :</strong> Posez le smartphone bien à plat le long de l&apos;axe central du châssis RC.<br />
-            <strong>Étape 2 :</strong> Appuyez sur le bouton <strong className="text-sky-300">« Tare Zéro Châssis (0.0°) »</strong>.<br />
-            <strong>Étape 3 :</strong> Appliquez ensuite le smartphone bien à plat contre la roue {selectedWheel}. Utilisez <strong className="text-purple-300">« ± Signe »</strong> si besoin.
-          </p>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={setChassisToeReference}
-              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition shadow"
+              onClick={calibrateZero}
+              className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition shadow"
             >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>Calibrer Zéro Référence Châssis</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Tare Chassis (0.0°)</span>
             </button>
             {hasChassisToeReference && (
               <button
                 onClick={clearChassisToeReference}
                 className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700"
               >
-                Effacer Référence
+                Clear Reference
               </button>
             )}
             {onToggleSignReversed && (
@@ -667,7 +718,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 onClick={onToggleSignReversed}
                 className="px-2.5 py-1.5 bg-purple-950/80 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-xs font-mono font-bold rounded-lg transition"
               >
-                ± {isSignReversed ? 'Inversé (-)' : 'Normal (+)'}
+                ± {isSignReversed ? 'Inverted (-)' : 'Standard (+)'}
               </button>
             )}
           </div>
@@ -677,13 +728,13 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
       {/* Footer bar: Calibration reset */}
       <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
         <span className="text-slate-500 text-[11px] font-mono">
-          Mode Capteurs Smartphone Direct (Niveau &amp; Boussole)
+          Smartphone Inclinometer Sensor Mode (0.5° Increments)
         </span>
         <button
           onClick={resetAllCalibration}
           className="text-[11px] text-slate-500 hover:text-slate-300 underline font-mono"
         >
-          Réinitialiser tous les zéros
+          Reset All Calibration Zeros
         </button>
       </div>
     </div>

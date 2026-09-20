@@ -82,7 +82,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
     const cloned: Vehicle = {
       ...source,
       id: clonedId,
-      name: `${source.name} (Copie)`,
+      name: `${source.name} (Copy)`,
       updatedAt: new Date().toISOString(),
       setups: source.setups.map((s) => ({
         ...s,
@@ -98,10 +98,10 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
 
   const handleDelete = (id: string) => {
     if (vehicles.length <= 1) {
-      alert('Vous devez conserver au moins un véhicule.');
+      alert('You must keep at least one vehicle.');
       return;
     }
-    if (!confirm('Supprimer définitivement ce véhicule et tous ses réglages ?')) {
+    if (!confirm('Permanently delete this vehicle and all of its setup sheets?')) {
       return;
     }
     const updated = vehicles.filter((v) => v.id !== id);
@@ -118,7 +118,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
           <div className="flex items-center gap-2">
             <Settings2 className="w-5 h-5 text-emerald-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">
-              Gestionnaire des Véhicules & Châssis RC
+              RC Vehicles & Chassis Manager
             </h2>
           </div>
           <button
@@ -158,7 +158,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
               className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Nouveau Véhicule</span>
+              <span>New Vehicle</span>
             </button>
           </div>
 
@@ -166,21 +166,21 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
           {isCreating && (
             <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-4 space-y-3 animate-in fade-in">
               <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                Ajouter un nouveau châssis RC
+                Add New RC Chassis
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1">Nom du modèle :</label>
+                  <label className="block text-slate-400 mb-1">Model Name:</label>
                   <input
                     type="text"
-                    placeholder="Ex: Mugen MBX8R 2024"
+                    placeholder="e.g. Mugen MBX8R 2024"
                     value={newVehicleName}
                     onChange={(e) => setNewVehicleName(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Châssis prédéfini (Preset) :</label>
+                  <label className="block text-slate-400 mb-1">Chassis Preset:</label>
                   <select
                     value={selectedPresetId}
                     onChange={(e) => setSelectedPresetId(e.target.value)}
@@ -199,13 +199,13 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   onClick={() => setIsCreating(false)}
                   className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   onClick={handleCreateVehicle}
                   className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg shadow"
                 >
-                  Créer le véhicule
+                  Create Vehicle
                 </button>
               </div>
             </div>
@@ -217,28 +217,28 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <div>
                   <h3 className="font-bold text-sm text-slate-100">
-                    Configuration : {currentEditing.name}
+                    Configuration: {currentEditing.name}
                   </h3>
                   <span className="text-xs text-slate-400">
-                    Modifiez la géométrie et les tolérances recommandées pour ce châssis.
+                    Customize geometry and target tolerances for this chassis.
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => handleDuplicate(currentEditing.id)}
-                    title="Dupliquer ce véhicule"
+                    title="Duplicate vehicle"
                     className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 text-xs flex items-center gap-1"
                   >
                     <Copy className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Dupliquer</span>
+                    <span className="hidden sm:inline">Duplicate</span>
                   </button>
                   <button
                     onClick={() => handleDelete(currentEditing.id)}
-                    title="Supprimer ce véhicule"
+                    title="Delete vehicle"
                     className="p-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/50 rounded-lg text-rose-300 text-xs flex items-center gap-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Supprimer</span>
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
               {/* Basic Chassis Properties */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1">Nom du Véhicule :</label>
+                  <label className="block text-slate-400 mb-1">Vehicle Name:</label>
                   <input
                     type="text"
                     value={currentEditing.name}
@@ -255,7 +255,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Échelle :</label>
+                  <label className="block text-slate-400 mb-1">Scale:</label>
                   <select
                     value={currentEditing.scale}
                     onChange={(e) => handleUpdateCurrent('scale', e.target.value)}
@@ -269,7 +269,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Empattement (mm) :</label>
+                  <label className="block text-slate-400 mb-1">Wheelbase (mm):</label>
                   <input
                     type="number"
                     value={currentEditing.wheelbaseMm}
@@ -278,7 +278,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Voie (mm) :</label>
+                  <label className="block text-slate-400 mb-1">Track Width (mm):</label>
                   <input
                     type="number"
                     value={currentEditing.trackWidthMm}
@@ -288,24 +288,24 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                 </div>
               </div>
 
-              {/* Custom Target Angles (Tolérances recommandées) */}
+              {/* Custom Target Angles (Recommended tolerances) */}
               <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 sm:p-4 space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Plages d’angles recommandées (Indicateur Cible en Temps Réel)
+                  Target Angle Tolerances (Live Smartphone Targets)
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   {/* Front Camber */}
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="font-semibold text-slate-200 block mb-1.5">
-                      Carrossage Avant :
+                      Front Camber:
                     </span>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
                         <label className="text-[10px] text-slate-400">Min (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.frontCamber.min}
                           onChange={(e) =>
                             handleUpdateTarget('frontCamber', 'min', parseFloat(e.target.value))
@@ -317,7 +317,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                         <label className="text-[10px] text-slate-400">Max (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.frontCamber.max}
                           onChange={(e) =>
                             handleUpdateTarget('frontCamber', 'max', parseFloat(e.target.value))
@@ -331,14 +331,14 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   {/* Rear Camber */}
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="font-semibold text-slate-200 block mb-1.5">
-                      Carrossage Arrière :
+                      Rear Camber:
                     </span>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
                         <label className="text-[10px] text-slate-400">Min (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.rearCamber.min}
                           onChange={(e) =>
                             handleUpdateTarget('rearCamber', 'min', parseFloat(e.target.value))
@@ -350,7 +350,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                         <label className="text-[10px] text-slate-400">Max (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.rearCamber.max}
                           onChange={(e) =>
                             handleUpdateTarget('rearCamber', 'max', parseFloat(e.target.value))
@@ -364,14 +364,14 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   {/* Front Toe */}
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="font-semibold text-slate-200 block mb-1.5">
-                      Pincement / Ouverture Avant :
+                      Front Toe:
                     </span>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
                         <label className="text-[10px] text-slate-400">Min (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.frontToe.min}
                           onChange={(e) =>
                             handleUpdateTarget('frontToe', 'min', parseFloat(e.target.value))
@@ -383,7 +383,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                         <label className="text-[10px] text-slate-400">Max (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.frontToe.max}
                           onChange={(e) =>
                             handleUpdateTarget('frontToe', 'max', parseFloat(e.target.value))
@@ -397,14 +397,14 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   {/* Rear Toe */}
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="font-semibold text-slate-200 block mb-1.5">
-                      Pincement Arrière :
+                      Rear Toe:
                     </span>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
                         <label className="text-[10px] text-slate-400">Min (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.rearToe.min}
                           onChange={(e) =>
                             handleUpdateTarget('rearToe', 'min', parseFloat(e.target.value))
@@ -416,7 +416,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                         <label className="text-[10px] text-slate-400">Max (°)</label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.5"
                           value={currentEditing.customTargets.rearToe.max}
                           onChange={(e) =>
                             handleUpdateTarget('rearToe', 'max', parseFloat(e.target.value))
@@ -430,7 +430,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   {/* Front Caster */}
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 sm:col-span-2">
                     <span className="font-semibold text-slate-200 block mb-1.5">
-                      Angle de Chasse Avant :
+                      Front Caster Angle:
                     </span>
                     <div className="flex items-center gap-2 max-w-sm">
                       <div className="flex-1">
@@ -471,7 +471,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow"
           >
-            Fermer et Appliquer
+            Close & Apply
           </button>
         </div>
       </div>

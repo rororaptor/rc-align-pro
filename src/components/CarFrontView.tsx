@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
 import { WheelPosition, VehicleSetupSheet, Vehicle } from '../types';
 import { detectVehicleArchetype, ARCHETYPE_META } from './CarTopView';
+import { createDefaultVehicle } from '../data/chassisPresets';
 import { Eye, CheckCircle2, AlertCircle, Check } from 'lucide-react';
 
 interface CarFrontViewProps {
-  vehicle: Vehicle;
-  activeSetup: VehicleSetupSheet;
-  selectedWheel: WheelPosition;
-  onSelectWheel: (pos: WheelPosition) => void;
+  vehicle?: Vehicle;
+  activeSetup?: VehicleSetupSheet;
+  selectedWheel?: WheelPosition;
+  onSelectWheel?: (pos: WheelPosition) => void;
 }
 
 export const CarFrontView: React.FC<CarFrontViewProps> = ({
   vehicle,
   activeSetup,
-  selectedWheel,
-  onSelectWheel,
+  selectedWheel = 'FL',
+  onSelectWheel = () => {},
 }) => {
-  const wheels = activeSetup.wheels;
-  const targets = vehicle.customTargets;
-  const archetype = detectVehicleArchetype(vehicle);
+  const safeVehicle = vehicle || createDefaultVehicle();
+  const DEFAULT_WHEELS = {
+    FL: { camber: null, toe: null, caster: null, measuredAt: null },
+    FR: { camber: null, toe: null, caster: null, measuredAt: null },
+    RL: { camber: null, toe: null, caster: null, measuredAt: null },
+    RR: { camber: null, toe: null, caster: null, measuredAt: null },
+  };
+  const wheels = activeSetup?.wheels || DEFAULT_WHEELS;
+  const targets = safeVehicle.customTargets;
+  const archetype = detectVehicleArchetype(safeVehicle);
   const meta = ARCHETYPE_META[archetype];
 
   // Determine which axle to view: 'front' (FL/FR) or 'rear' (RL/RR)
@@ -90,10 +98,10 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
         <div className="flex items-center gap-2">
           <Eye className="w-4 h-4 text-emerald-400" />
           <span className="font-bold text-slate-200">
-            Vue de Face {isFront ? '• Train Avant' : '• Train Arrière'}
+            Front Elevation {isFront ? '• Front Axle' : '• Rear Axle'}
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            {meta.badge} &bull; Carrossage
+            {meta.badge} &bull; Camber
           </span>
         </div>
 
@@ -112,7 +120,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            Train Avant (AV)
+            Front Axle (FA)
           </button>
           <button
             onClick={() => {
@@ -127,7 +135,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            Train Arrière (AR)
+            Rear Axle (RA)
           </button>
         </div>
       </div>
@@ -586,7 +594,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
               fontWeight="bold"
               fontFamily="sans-serif"
             >
-              Angle de Carrossage vu de Face
+              Front View Camber Angle
             </text>
           </g>
         </svg>
@@ -609,18 +617,18 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
                 isLeftSelected ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'
               }`}
             >
-              {leftPos} ({isFront ? 'Avant Gauche' : 'Arrière Gauche'})
+              {leftPos} ({isFront ? 'Front Left' : 'Rear Left'})
             </span>
             {isLeftSelected && (
               <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 font-mono">
-                <Check className="w-3 h-3" /> Sélectionnée
+                <Check className="w-3 h-3" /> Selected
               </span>
             )}
           </div>
 
           <div className="flex items-baseline justify-between mt-1">
             <div>
-              <span className="text-[10px] text-slate-400 block uppercase font-mono">Carrossage</span>
+              <span className="text-[10px] text-slate-400 block uppercase font-mono">Camber</span>
               <span
                 className={`text-base font-black font-mono ${
                   leftCamber !== null
@@ -636,20 +644,20 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
 
             <div className="text-right font-mono text-[10px]">
               <span className="text-slate-500 block">
-                Cible : [{camberRange.min}°, {camberRange.max}°]
+                Target: [{camberRange.min}°, {camberRange.max}°]
               </span>
               {leftCamber !== null ? (
                 leftInRange ? (
                   <span className="text-emerald-400 font-bold flex items-center justify-end gap-1">
-                    <CheckCircle2 className="w-3 h-3 inline" /> Conforme
+                    <CheckCircle2 className="w-3 h-3 inline" /> In Spec
                   </span>
                 ) : (
                   <span className="text-amber-400 font-bold flex items-center justify-end gap-1">
-                    <AlertCircle className="w-3 h-3 inline" /> Hors tolérance
+                    <AlertCircle className="w-3 h-3 inline" /> Out of Spec
                   </span>
                 )
               ) : (
-                <span className="text-slate-500">Non mesuré</span>
+                <span className="text-slate-500">Not measured</span>
               )}
             </div>
           </div>
@@ -670,18 +678,18 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
                 isRightSelected ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'
               }`}
             >
-              {rightPos} ({isFront ? 'Avant Droit' : 'Arrière Droit'})
+              {rightPos} ({isFront ? 'Front Right' : 'Rear Right'})
             </span>
             {isRightSelected && (
               <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 font-mono">
-                <Check className="w-3 h-3" /> Sélectionnée
+                <Check className="w-3 h-3" /> Selected
               </span>
             )}
           </div>
 
           <div className="flex items-baseline justify-between mt-1">
             <div>
-              <span className="text-[10px] text-slate-400 block uppercase font-mono">Carrossage</span>
+              <span className="text-[10px] text-slate-400 block uppercase font-mono">Camber</span>
               <span
                 className={`text-base font-black font-mono ${
                   rightCamber !== null
@@ -697,20 +705,20 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
 
             <div className="text-right font-mono text-[10px]">
               <span className="text-slate-500 block">
-                Cible : [{camberRange.min}°, {camberRange.max}°]
+                Target: [{camberRange.min}°, {camberRange.max}°]
               </span>
               {rightCamber !== null ? (
                 rightInRange ? (
                   <span className="text-emerald-400 font-bold flex items-center justify-end gap-1">
-                    <CheckCircle2 className="w-3 h-3 inline" /> Conforme
+                    <CheckCircle2 className="w-3 h-3 inline" /> In Spec
                   </span>
                 ) : (
                   <span className="text-amber-400 font-bold flex items-center justify-end gap-1">
-                    <AlertCircle className="w-3 h-3 inline" /> Hors tolérance
+                    <AlertCircle className="w-3 h-3 inline" /> Out of Spec
                   </span>
                 )
               ) : (
-                <span className="text-slate-500">Non mesuré</span>
+                <span className="text-slate-500">Not measured</span>
               )}
             </div>
           </div>
@@ -719,7 +727,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
 
       {/* Explanatory Technical Note */}
       <div className="w-full bg-slate-900/40 border border-slate-800/80 rounded-lg p-2 mt-2 text-[11px] text-slate-400 font-mono leading-relaxed text-center">
-        💡 <strong className="text-slate-300">Carrossage négatif :</strong> Le sommet des roues est incliné vers l&apos;intérieur du châssis. Lors d&apos;un virage en appui, l&apos;écrasement de la suspension remet le pneu parfaitement à plat sur la piste.
+        💡 <strong className="text-slate-300">Negative Camber:</strong> Wheel tops tilt inward toward the chassis centerline. Under cornering load, suspension compression brings the tire tread contact patch perfectly flat against the track surface.
       </div>
     </div>
   );

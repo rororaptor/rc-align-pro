@@ -1,24 +1,32 @@
 import React from 'react';
 import { WheelPosition, VehicleSetupSheet, Vehicle } from '../types';
 import { detectVehicleArchetype, ARCHETYPE_META } from './CarTopView';
+import { createDefaultVehicle } from '../data/chassisPresets';
 import { Navigation, CheckCircle2, AlertCircle, Check } from 'lucide-react';
 
 interface CarSideViewProps {
-  vehicle: Vehicle;
-  activeSetup: VehicleSetupSheet;
-  selectedWheel: WheelPosition;
-  onSelectWheel: (pos: WheelPosition) => void;
+  vehicle?: Vehicle;
+  activeSetup?: VehicleSetupSheet;
+  selectedWheel?: WheelPosition;
+  onSelectWheel?: (pos: WheelPosition) => void;
 }
 
 export const CarSideView: React.FC<CarSideViewProps> = ({
   vehicle,
   activeSetup,
-  selectedWheel,
-  onSelectWheel,
+  selectedWheel = 'FL',
+  onSelectWheel = () => {},
 }) => {
-  const wheels = activeSetup.wheels;
-  const targets = vehicle.customTargets;
-  const archetype = detectVehicleArchetype(vehicle);
+  const safeVehicle = vehicle || createDefaultVehicle();
+  const DEFAULT_WHEELS = {
+    FL: { camber: null, toe: null, caster: null, measuredAt: null },
+    FR: { camber: null, toe: null, caster: null, measuredAt: null },
+    RL: { camber: null, toe: null, caster: null, measuredAt: null },
+    RR: { camber: null, toe: null, caster: null, measuredAt: null },
+  };
+  const wheels = activeSetup?.wheels || DEFAULT_WHEELS;
+  const targets = safeVehicle.customTargets;
+  const archetype = detectVehicleArchetype(safeVehicle);
   const meta = ARCHETYPE_META[archetype];
 
   // In RC, Caster is on the front axle.
@@ -26,7 +34,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
   const isRightWheel = selectedWheel === 'FR' || selectedWheel === 'RR';
   const activeSide: 'FL' | 'FR' = isRightWheel ? 'FR' : 'FL';
 
-  const casterVal = wheels[activeSide].caster;
+  const casterVal = wheels[activeSide]?.caster ?? null;
   const casterRange = targets.frontCaster;
 
   const isAngleInRange = (val: number | null) => {
@@ -69,14 +77,14 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
         <div className="flex items-center gap-2">
           <Navigation className="w-4 h-4 text-sky-400 rotate-90" />
           <span className="font-bold text-slate-200">
-            Vue de Côté (Profil) • Mesure de la Chasse
+            Side Profile View • Caster Angle
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30">
             {meta.badge} &bull; Caster
           </span>
         </div>
 
-        {/* Side Toggle: FL (Côté Gauche) vs FR (Côté Droit) */}
+        {/* Side Toggle: FL (Left Side) vs FR (Right Side) */}
         <div className="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-xs font-mono">
           <button
             onClick={() => onSelectWheel('FL')}
@@ -86,7 +94,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            Côté Gauche (FL)
+            Left Side (FL)
           </button>
           <button
             onClick={() => onSelectWheel('FR')}
@@ -96,7 +104,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            Côté Droit (FR)
+            Right Side (FR)
           </button>
         </div>
       </div>
@@ -404,7 +412,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
             fontFamily="monospace"
             fontWeight="bold"
           >
-            Axe de pivot (Chasse) &rarr;
+            Steering Pivot Axis (Caster) &rarr;
           </text>
 
           {/* Central Title Pill in SVG */}
@@ -428,7 +436,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
               fontWeight="bold"
               fontFamily="sans-serif"
             >
-              Angle de Chasse vu de Profil (C-Hub)
+              Side Profile Caster Angle (C-Hub)
             </text>
           </g>
         </svg>
@@ -440,20 +448,20 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-sky-500 text-slate-950">
-                {activeSide} (Train Avant - {activeSide === 'FL' ? 'Côté Gauche' : 'Côté Droit'})
+                {activeSide} (Front Axle - {activeSide === 'FL' ? 'Left Side' : 'Right Side'})
               </span>
               <span className="text-[10px] text-sky-400 font-mono flex items-center gap-1 font-bold">
-                <Check className="w-3 h-3" /> Côté Actif
+                <Check className="w-3 h-3" /> Active Side
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono">
-              Plage cible recommandée : [{casterRange.min}°, {casterRange.max}°]
+              Target recommended range: [{casterRange.min}°, {casterRange.max}°]
             </p>
           </div>
 
           <div className="flex items-center gap-3 self-end sm:self-auto">
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase font-mono block">Angle de Chasse</span>
+              <span className="text-[10px] text-slate-400 uppercase font-mono block">Caster Angle</span>
               <span
                 className={`text-xl font-black font-mono ${
                   casterVal !== null
@@ -471,15 +479,15 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
               {casterVal !== null ? (
                 inRange ? (
                   <span className="px-2 py-1 rounded bg-sky-950/80 border border-sky-500/50 text-sky-300 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Conforme
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> In Spec
                   </span>
                 ) : (
                   <span className="px-2 py-1 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> Hors tolérance
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> Out of Spec
                   </span>
                 )
               ) : (
-                <span className="text-slate-500">Non mesuré</span>
+                <span className="text-slate-500">Not measured</span>
               )}
             </div>
           </div>
@@ -488,7 +496,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
 
       {/* Explanatory Technical Note */}
       <div className="w-full bg-slate-900/40 border border-slate-800/80 rounded-lg p-2 mt-2 text-[11px] text-slate-400 font-mono leading-relaxed text-center">
-        💡 <strong className="text-slate-300">Angle de chasse (Caster) :</strong> Inclinaison de l&apos;axe de pivotement de la direction vers l&apos;arrière. Plus la chasse est élevée, plus le véhicule est stable en ligne droite et rapide à revenir au centre en sortie de virage.
+        💡 <strong className="text-slate-300">Caster Angle:</strong> Backward inclination of the steering kingpin axis. Higher caster improves high-speed straight-line stability and provides faster self-centering out of corners.
       </div>
     </div>
   );

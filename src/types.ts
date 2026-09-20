@@ -30,7 +30,7 @@ export interface ChassisPreset {
 
 export interface WheelSetupValues {
   camber: number | null; // in degrees, e.g. -2.1
-  toe: number | null;    // in degrees, e.g. -0.5 (negative = toe-out/ouverture, positive = toe-in/pincement)
+  toe: number | null;    // in degrees, e.g. -0.5 (negative = toe-out, positive = toe-in)
   caster: number | null; // in degrees, e.g. 5.5
   measuredAt?: string;
   notes?: string;
@@ -38,9 +38,9 @@ export interface WheelSetupValues {
 
 export interface VehicleSetupSheet {
   id: string;
-  name: string; // e.g. "Manche 1 - Piste Sèche Moquette"
+  name: string; // e.g. "Heat 1 - Dry Carpet Track"
   createdAt: string;
-  trackCondition: string; // e.g. "Asphalte sec", "Moquette haute adhérence", "Terre glissante"
+  trackCondition: string; // e.g. "Dry Asphalt", "High-Grip Carpet", "Loose Clay"
   temperatureC?: number;
   tires?: string;
   wheels: {
@@ -82,6 +82,23 @@ export interface SensorCalibration {
 }
 
 export type ThemeMode = 'dark_circuit' | 'sun_contrast' | 'light_pit';
+
+export type AppLanguage = 'system' | 'en' | 'fr' | 'de';
+export type AppTheme = 'dark' | 'light';
+export type ValueDisplayFormat = 'decimal' | 'integer' | 'step05';
+
+export interface AppSettings {
+  language: AppLanguage;
+  theme: AppTheme;
+  valueFormat: ValueDisplayFormat;
+  keepScreenAwake: boolean;
+  screenKeepAwake?: boolean;
+  targetSoundEnabled: boolean;
+  targetVibrationEnabled: boolean;
+  targetBgGlowEnabled: boolean;
+  targetBackgroundGlow?: boolean;
+  targetColor: string; // e.g. '#10b981'
+}
 
 export interface CloudSyncState {
   syncCode: string;

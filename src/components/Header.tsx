@@ -10,9 +10,11 @@ import {
   EyeOff,
   Lock,
   FileText,
+  Settings as SettingsIcon,
 } from 'lucide-react';
-import { ThemeMode, Vehicle } from '../types';
+import { ThemeMode, Vehicle, AppSettings } from '../types';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { getTranslation } from '../utils/i18n';
 
 interface HeaderProps {
   theme: ThemeMode;
@@ -23,6 +25,8 @@ interface HeaderProps {
   onOpenVehicleManager: () => void;
   onOpenSetupsModal: () => void;
   onOpenPdfModal?: () => void;
+  onOpenOptionsModal?: () => void;
+  settings?: AppSettings;
   isWakeLocked: boolean;
   onToggleWakeLock: () => void;
   isOrientationLocked?: boolean;
@@ -38,29 +42,42 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenVehicleManager,
   onOpenSetupsModal,
   onOpenPdfModal,
+  onOpenOptionsModal,
+  settings,
   isWakeLocked,
   onToggleWakeLock,
   isOrientationLocked = false,
   onToggleOrientationLock,
 }) => {
   const { isInstallable, install } = usePWAInstall();
+  const t = getTranslation(settings?.language || 'system');
 
   return (
     <header className="sticky top-0 z-40 border-b backdrop-blur-md transition-colors duration-200 border-slate-800/80 bg-slate-950/90 text-slate-100">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
         {/* Brand & Active Car */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+          <div
+            className="w-10 h-10 rounded-xl border flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+            style={{
+              backgroundColor: `${settings?.targetColor || '#10b981'}20`,
+              borderColor: `${settings?.targetColor || '#10b981'}50`,
+              color: settings?.targetColor || '#10b981',
+            }}
+          >
             <Car className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-extrabold text-base sm:text-lg tracking-tight flex items-center gap-1.5 text-white">
                 <span>RC ALIGN</span>
-                <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span
+                  className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded font-black text-slate-950 shadow-sm"
+                  style={{ backgroundColor: settings?.targetColor || '#10b981' }}
+                >
                   PRO
                 </span>
-                <span className="text-xs sm:text-sm font-semibold text-emerald-400 tracking-tight ml-1">
+                <span className="text-xs sm:text-sm font-semibold tracking-tight ml-1" style={{ color: settings?.targetColor || '#10b981' }}>
                   by rororaptor
                 </span>
               </h1>
@@ -68,10 +85,11 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Quick Vehicle Switcher */}
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <select
-                aria-label="Sélectionner le véhicule RC"
+                aria-label="Select RC Vehicle"
                 value={activeVehicle.id}
                 onChange={(e) => onSelectVehicle(e.target.value)}
-                className="bg-slate-900 border border-slate-700/80 rounded px-1.5 py-0.5 text-xs text-emerald-300 font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[140px] sm:max-w-[200px] truncate"
+                className="bg-slate-900 border border-slate-700/80 rounded px-1.5 py-0.5 text-xs font-semibold focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[200px] truncate"
+                style={{ color: settings?.targetColor || '#34d399' }}
               >
                 {vehicles.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -81,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
               </select>
               <button
                 onClick={onOpenVehicleManager}
-                title="Gérer les véhicules et châssis"
+                title="Manage vehicles and chassis setups"
                 className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition"
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -92,6 +110,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Options Button */}
+          {onOpenOptionsModal && (
+            <button
+              onClick={onOpenOptionsModal}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-slate-200 hover:text-white hover:bg-slate-800 text-xs flex items-center gap-1.5 font-bold transition shadow-sm"
+              title={t.options}
+            >
+              <SettingsIcon className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden sm:inline">{t.options}</span>
+            </button>
+          )}
+
           {/* WakeLock Screen Toggle */}
           <button
             onClick={onToggleWakeLock}
@@ -100,10 +130,10 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-sky-950/70 border-sky-500/50 text-sky-300 shadow-[0_0_10px_rgba(56,189,248,0.2)]'
                 : 'bg-slate-900 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
-            title={isWakeLocked ? "Écran maintenu allumé pour l'atelier (WakeLock actif)" : "Cliquer pour maintenir l'écran allumé pendant les réglages"}
+            title={isWakeLocked ? "Screen kept awake (WakeLock active)" : "Click to keep screen awake during pit adjustments"}
           >
             {isWakeLocked ? <Eye className="w-3.5 h-3.5 text-sky-400" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span className="hidden md:inline">Écran On</span>
+            <span className="hidden md:inline">Screen On</span>
           </button>
 
           {/* Screen Orientation Lock Toggle */}
@@ -117,12 +147,12 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
               title={
                 isOrientationLocked
-                  ? "Rotation d'écran verrouillée en portrait (aucun basculement involontaire)"
-                  : "Cliquer pour verrouiller l'écran en mode portrait et empêcher la rotation"
+                  ? "Screen orientation locked to portrait (prevents accidental rotation)"
+                  : "Click to lock screen orientation to portrait"
               }
             >
               <Lock className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden md:inline">{isOrientationLocked ? 'Portrait Fixé' : 'Verrouiller'}</span>
+              <span className="hidden md:inline">{isOrientationLocked ? 'Portrait Locked' : 'Lock Portrait'}</span>
             </button>
           )}
 
@@ -130,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center bg-slate-900 border border-slate-700/60 rounded-lg p-0.5 text-xs">
             <button
               onClick={() => setTheme('dark_circuit')}
-              title="Mode Sombre Circuit (OLED Haute Précision)"
+              title="Circuit Dark Mode (High Contrast OLED)"
               className={`p-1.5 rounded-md transition ${
                 theme === 'dark_circuit'
                   ? 'bg-slate-800 text-emerald-400 font-semibold shadow-sm'
@@ -141,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => setTheme('sun_contrast')}
-              title="Mode Plein Soleil (Contraste Extérieur Circuit)"
+              title="Full Sun Mode (High Contrast Outdoor Visibility)"
               className={`p-1.5 rounded-md transition ${
                 theme === 'sun_contrast'
                   ? 'bg-amber-400 text-slate-950 font-bold shadow-sm'
@@ -156,10 +186,10 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenSetupsModal}
             className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-900 border border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs flex items-center gap-1.5 font-medium transition"
-            title="Historique des feuilles de réglages"
+            title="Setup sheets history & management"
           >
             <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Setups</span>
+            <span className="hidden sm:inline">{t.setups}</span>
           </button>
 
           {/* Quick Export PDF Setup Sheet */}
@@ -167,10 +197,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenPdfModal}
               className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-1.5 font-bold transition shadow-sm"
-              title="Générer et télécharger la fiche de réglages complète sous format PDF (Format A4 officiel)"
+              title="Generate and export complete setup sheet as official A4 PDF"
             >
               <FileText className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Fiche PDF</span>
+              <span>{t.setupPdf}</span>
             </button>
           )}
 
@@ -179,10 +209,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={install}
               className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold text-xs flex items-center gap-1.5 transition shadow-sm animate-pulse"
-              title="Installer sur Android / Écran d'accueil"
+              title="Install app to Home Screen (PWA)"
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Installer</span>
+              <span className="hidden xs:inline">Install</span>
             </button>
           )}
         </div>

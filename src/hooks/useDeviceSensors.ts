@@ -208,43 +208,31 @@ export function useDeviceSensors(
   }, []);
 
   // Tare / Zero current reading for active angle:
-  // EXACT USER REQUIREMENT:
-  // "affecter la fonction calibrer zéro référence châssis au bouton tare 0 degrés lors de la mesure du pincement."
   const calibrateZero = useCallback(() => {
     playTareSound();
+    const currentRoll = latestRollRef.current;
+    const currentPitch = latestPitchRef.current;
+    smoothedLevelTilt.current = currentRoll;
+    smoothedPitch.current = currentPitch;
+
     if (activeMeasurement === 'toe') {
-      // 1. Determine stable heading: circular mean of recent history or current heading ref
-      const currentStableHeading =
-        headingHistoryRef.current.length >= 3
-          ? computeCircularMean(headingHistoryRef.current)
-          : (latestCompassRef.current || smoothedCompass.current || sensorValues.compassHeading);
-
-      // 2. Synchronize filter, live refs, and history to this exact value so live difference is 0.0°
-      smoothedCompass.current = currentStableHeading;
-      latestCompassRef.current = currentStableHeading;
-      headingHistoryRef.current = Array(15).fill(currentStableHeading);
-
+      // Toe measured by spirit level with chassis oriented vertically relative to workbench:
+      // Tare saves the vertical chassis reference roll angle
       const updated: SensorCalibration = {
         ...calibrationRef.current,
-        referenceChassisYaw: currentStableHeading,
-        zeroYaw: currentStableHeading,
+        referenceChassisYaw: currentRoll,
+        zeroYaw: currentRoll,
         lastCalibratedAt: new Date().toISOString(),
       };
       calibrationRef.current = updated;
       saveCalibration(updated);
 
-      // 3. Immediate state update to guarantee 0.0° readout without waiting for next sensor tick
       setSensorValues((prev) => ({
         ...prev,
-        compassHeading: currentStableHeading,
-        yaw: currentStableHeading,
+        roll: currentRoll,
+        pitch: currentPitch,
       }));
     } else {
-      const currentRoll = latestRollRef.current;
-      const currentPitch = latestPitchRef.current;
-      smoothedLevelTilt.current = currentRoll;
-      smoothedPitch.current = currentPitch;
-
       const updated: SensorCalibration = {
         ...calibrationRef.current,
         zeroPitch: currentPitch,
@@ -260,24 +248,18 @@ export function useDeviceSensors(
         pitch: currentPitch,
       }));
     }
-  }, [activeMeasurement, saveCalibration, sensorValues.compassHeading]);
+  }, [activeMeasurement, saveCalibration]);
 
-  // Explicit set reference chassis angle for Toe measurement
+  // Explicit set reference vertical chassis angle for Toe measurement
   const setChassisToeReference = useCallback(() => {
     playTareSound();
-    const currentStableHeading =
-      headingHistoryRef.current.length >= 3
-        ? computeCircularMean(headingHistoryRef.current)
-        : (latestCompassRef.current || smoothedCompass.current || sensorValues.compassHeading);
-
-    smoothedCompass.current = currentStableHeading;
-    latestCompassRef.current = currentStableHeading;
-    headingHistoryRef.current = Array(15).fill(currentStableHeading);
+    const currentRoll = latestRollRef.current;
+    smoothedLevelTilt.current = currentRoll;
 
     const updated: SensorCalibration = {
       ...calibrationRef.current,
-      referenceChassisYaw: currentStableHeading,
-      zeroYaw: currentStableHeading,
+      referenceChassisYaw: currentRoll,
+      zeroYaw: currentRoll,
       lastCalibratedAt: new Date().toISOString(),
     };
     calibrationRef.current = updated;
@@ -285,10 +267,9 @@ export function useDeviceSensors(
 
     setSensorValues((prev) => ({
       ...prev,
-      compassHeading: currentStableHeading,
-      yaw: currentStableHeading,
+      roll: currentRoll,
     }));
-  }, [saveCalibration, sensorValues.compassHeading]);
+  }, [saveCalibration]);
 
   // Clear chassis toe reference
   const clearChassisToeReference = useCallback(() => {
@@ -512,31 +493,26 @@ export function useDeviceSensors(
       liveAngle = effectiveTiltRight;
     }
   } else if (activeMeasurement === 'toe') {
-    // Toe measurement using PURE COMPASS (boussole):
-    const currentHeading = sensorValues.compassHeading;
-    const refHeading =
+    // Toe measurement using SMARTPHONE SPIRIT LEVEL with chassis positioned VERTICALLY:
+    // Le châssis est placé verticalement par rapport au plan de travail.
+    // L'utilisateur pose un des bords gauche ou droit du smartphone contre le châssis pour la tare,
+    // puis contre la roue pour mesurer l'angle au niveau à bulle.
+    const refVerticalRoll =
       calibration.referenceChassisYaw !== null
         ? calibration.referenceChassisYaw
-        : calibration.zeroYaw;
+        : calibration.zeroRoll;
 
-    let diff = currentHeading - refHeading;
-    while (diff > 180) diff -= 360;
-    while (diff < -180) diff += 360;
-
-    // Stable Zero Deadband:
-    // If within ±0.15° of reference chassis tare, snap strictly to 0.0°
-    // to prevent jitter or residual touch offset from throwing off the zero!
-    if (Math.abs(diff) < 0.15) {
+    let diff = sensorValues.roll - refVerticalRoll;
+    if (Math.abs(diff) < 0.08) {
       diff = 0;
     }
 
     liveAngle = isLeftWheel ? diff : -diff;
   } else {
-    // Caster (Chasse): Spirit level along steering knuckle (axe de la fusée)
-    let rawCasterTilt = 0;
-    if (Math.abs(sensorValues.rawRoll) >= Math.abs(sensorValues.rawPitch)) {
-      rawCasterTilt = sensorValues.roll - calibration.zeroRoll;
-    } else {
+    // Caster (Chasse): Spirit level with wheels removed, chassis flat on workbench,
+    // placing right or left edge of smartphone against the steering knuckle (fusée)
+    let rawCasterTilt = sensorValues.roll - calibration.zeroRoll;
+    if (Math.abs(sensorValues.rawPitch) > Math.abs(sensorValues.rawRoll)) {
       rawCasterTilt = sensorValues.pitch - calibration.zeroPitch;
     }
     if (Math.abs(rawCasterTilt) < 0.08) {
@@ -550,12 +526,12 @@ export function useDeviceSensors(
     liveAngle = -liveAngle;
   }
 
-  // Rounded to 0.1 degree precision (strictly prevents -0.0)
-  let rounded = Math.round(liveAngle * 10) / 10;
-  if (Math.abs(rounded) < 0.05) {
+  // Rounded strictly to 0.5 degree precision (increments: -2.0, -1.5, -1.0, -0.5, 0.0, +0.5, +1.0, +1.5...)
+  let rounded = Math.round(liveAngle * 2) / 2;
+  if (Math.abs(rounded) < 0.01) {
     rounded = 0;
   }
-  const displayAngle = isHeld && heldAngle !== null ? heldAngle : rounded;
+  const displayAngle = isHeld && heldAngle !== null ? Math.round(heldAngle * 2) / 2 : rounded;
 
   return {
     permissionState,

@@ -18,7 +18,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newSetupName, setNewSetupName] = useState('');
-  const [newTrackCondition, setNewTrackCondition] = useState('Moquette / Bitume');
+  const [newTrackCondition, setNewTrackCondition] = useState('Carpet / Asphalt');
   const [newTires, setNewTires] = useState('');
 
   if (!isOpen) return null;
@@ -31,12 +31,20 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
     });
   };
 
+  const DEFAULT_FALLBACK_WHEELS = {
+    FL: { camber: -2.0, toe: -0.5, caster: 4.5, measuredAt: null },
+    FR: { camber: -2.0, toe: -0.5, caster: 4.5, measuredAt: null },
+    RL: { camber: -2.2, toe: 3.0, caster: null, measuredAt: null },
+    RR: { camber: -2.2, toe: 3.0, caster: null, measuredAt: null },
+  };
+
   const handleCreateSetup = () => {
-    const name = newSetupName.trim() || `Setup #${vehicle.setups.length + 1}`;
+    const name = newSetupName.trim() || `Setup #${(vehicle.setups || []).length + 1}`;
     const newId = `setup-${Date.now()}`;
 
     // Inherit wheels from currently active setup or initialize
-    const activeOne = vehicle.setups.find((s) => s.id === vehicle.activeSetupId) || vehicle.setups[0];
+    const activeOne = vehicle.setups?.find((s) => s.id === vehicle.activeSetupId) || vehicle.setups?.[0];
+    const wheelsToClone = activeOne?.wheels || DEFAULT_FALLBACK_WHEELS;
 
     const newSetup: VehicleSetupSheet = {
       id: newId,
@@ -44,14 +52,14 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
       createdAt: new Date().toISOString(),
       trackCondition: newTrackCondition,
       tires: newTires,
-      wheels: JSON.parse(JSON.stringify(activeOne.wheels)),
+      wheels: JSON.parse(JSON.stringify(wheelsToClone)),
       notes: '',
     };
 
     onUpdateVehicle({
       ...vehicle,
       activeSetupId: newId,
-      setups: [newSetup, ...vehicle.setups],
+      setups: [newSetup, ...(vehicle.setups || [])],
       updatedAt: new Date().toISOString(),
     });
 
@@ -61,28 +69,29 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
 
   const handleDuplicate = (setup: VehicleSetupSheet) => {
     const newId = `setup-${Date.now()}`;
+    const wheelsToClone = setup.wheels || DEFAULT_FALLBACK_WHEELS;
     const duplicated: VehicleSetupSheet = {
       ...setup,
       id: newId,
-      name: `${setup.name} (Copie)`,
+      name: `${setup.name} (Copy)`,
       createdAt: new Date().toISOString(),
-      wheels: JSON.parse(JSON.stringify(setup.wheels)),
+      wheels: JSON.parse(JSON.stringify(wheelsToClone)),
     };
 
     onUpdateVehicle({
       ...vehicle,
       activeSetupId: newId,
-      setups: [duplicated, ...vehicle.setups],
+      setups: [duplicated, ...(vehicle.setups || [])],
       updatedAt: new Date().toISOString(),
     });
   };
 
   const handleDelete = (setupId: string) => {
     if (vehicle.setups.length <= 1) {
-      alert('Vous devez conserver au moins une feuille de réglages.');
+      alert('You must keep at least one setup sheet.');
       return;
     }
-    if (!confirm('Supprimer cette feuille de réglages ?')) return;
+    if (!confirm('Delete this setup sheet?')) return;
 
     const filtered = vehicle.setups.filter((s) => s.id !== setupId);
     onUpdateVehicle({
@@ -101,8 +110,8 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
             <div>
-              <h2 className="text-base font-bold text-white">Feuilles de Réglages (Setups)</h2>
-              <p className="text-xs text-slate-400">Véhicule actuel : {vehicle.name}</p>
+              <h2 className="text-base font-bold text-white">Setup Sheets</h2>
+              <p className="text-xs text-slate-400">Active Vehicle : {vehicle.name}</p>
             </div>
           </div>
           <button
@@ -118,14 +127,14 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
           {/* New Setup Trigger */}
           <div className="flex justify-between items-center">
             <span className="text-xs font-mono text-slate-400">
-              {vehicle.setups.length} feuille(s) enregistrée(s)
+              {vehicle.setups.length} setup sheet(s) saved
             </span>
             <button
               onClick={() => setIsCreating(!isCreating)}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition shadow"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Nouvelle Feuille</span>
+              <span>New Setup Sheet</span>
             </button>
           </div>
 
@@ -133,34 +142,34 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
           {isCreating && (
             <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-3.5 space-y-3 animate-in fade-in">
               <h3 className="text-xs font-bold uppercase text-emerald-400">
-                Créer une nouvelle feuille de réglages
+                Create a new setup sheet
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1">Nom du Setup :</label>
+                  <label className="block text-slate-400 mb-1">Setup Name:</label>
                   <input
                     type="text"
-                    placeholder="Ex: Manche 1 - Piste Humide"
+                    placeholder="e.g., Heat 1 - Wet Track"
                     value={newSetupName}
                     onChange={(e) => setNewSetupName(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Conditions de piste :</label>
+                  <label className="block text-slate-400 mb-1">Track Conditions:</label>
                   <input
                     type="text"
-                    placeholder="Ex: Moquette forte accroche"
+                    placeholder="e.g., High-grip carpet"
                     value={newTrackCondition}
                     onChange={(e) => setNewTrackCondition(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-slate-400 mb-1">Pneumatiques :</label>
+                  <label className="block text-slate-400 mb-1">Tires & Compounds:</label>
                   <input
                     type="text"
-                    placeholder="Ex: Sorex 28JB traités / Mousse 40 shore"
+                    placeholder="e.g., Sorex 28JB additivated / Foam 40 shore"
                     value={newTires}
                     onChange={(e) => setNewTires(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
@@ -172,13 +181,13 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                   onClick={() => setIsCreating(false)}
                   className="px-3 py-1 text-xs text-slate-400 hover:text-slate-200"
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   onClick={handleCreateSetup}
                   className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg shadow"
                 >
-                  Enregistrer et Activer
+                  Save and Activate
                 </button>
               </div>
             </div>
@@ -203,14 +212,14 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                       <h4 className="font-bold text-sm text-white">{setup.name}</h4>
                       {isActive && (
                         <span className="text-[10px] font-bold uppercase bg-emerald-500 text-slate-950 px-2 py-0.5 rounded">
-                          Actif
+                          Active
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => downloadSetupPdf(vehicle, setup)}
-                        title="Télécharger la fiche de réglages complète au format PDF"
+                        title="Download complete setup sheet in PDF format"
                         className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-1 font-bold transition"
                       >
                         <FileText className="w-3.5 h-3.5 text-emerald-400" />
@@ -218,14 +227,14 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                       </button>
                       <button
                         onClick={() => handleDuplicate(setup)}
-                        title="Dupliquer"
+                        title="Duplicate"
                         className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(setup.id)}
-                        title="Supprimer"
+                        title="Delete"
                         className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-rose-400 text-xs"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -235,7 +244,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                           onClick={() => handleSelectActive(setup.id)}
                           className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 hover:text-slate-950 text-slate-200 text-xs font-bold rounded-lg transition"
                         >
-                          Activer
+                          Activate
                         </button>
                       )}
                     </div>
@@ -245,36 +254,36 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                   <div className="flex items-center gap-3 text-xs text-slate-400 font-mono mb-2 flex-wrap">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-500" />
-                      {new Date(setup.createdAt).toLocaleDateString('fr-FR')}
+                      {new Date(setup.createdAt).toLocaleDateString('en-US')}
                     </span>
-                    {setup.trackCondition && <span>Piste : {setup.trackCondition}</span>}
-                    {setup.tires && <span>Pneus : {setup.tires}</span>}
+                    {setup.trackCondition && <span>Track : {setup.trackCondition}</span>}
+                    {setup.tires && <span>Tires : {setup.tires}</span>}
                   </div>
 
                   {/* 4 Wheels Angles Summary Grid */}
                   <div className="grid grid-cols-4 gap-1.5 bg-slate-900/80 p-2 rounded-lg text-center text-xs font-mono">
                     <div>
-                      <span className="text-[10px] text-slate-400 block">AV-G</span>
+                      <span className="text-[10px] text-slate-400 block">FL</span>
                       <span className="font-bold text-emerald-400">
-                        {setup.wheels.FL.camber?.toFixed(1) ?? '-'}° / {setup.wheels.FL.toe?.toFixed(1) ?? '-'}°
+                        {setup.wheels?.FL?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.FL?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">AV-D</span>
+                      <span className="text-[10px] text-slate-400 block">FR</span>
                       <span className="font-bold text-emerald-400">
-                        {setup.wheels.FR.camber?.toFixed(1) ?? '-'}° / {setup.wheels.FR.toe?.toFixed(1) ?? '-'}°
+                        {setup.wheels?.FR?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.FR?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">AR-G</span>
+                      <span className="text-[10px] text-slate-400 block">RL</span>
                       <span className="font-bold text-emerald-400">
-                        {setup.wheels.RL.camber?.toFixed(1) ?? '-'}° / {setup.wheels.RL.toe?.toFixed(1) ?? '-'}°
+                        {setup.wheels?.RL?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.RL?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">AR-D</span>
+                      <span className="text-[10px] text-slate-400 block">RR</span>
                       <span className="font-bold text-emerald-400">
-                        {setup.wheels.RR.camber?.toFixed(1) ?? '-'}° / {setup.wheels.RR.toe?.toFixed(1) ?? '-'}°
+                        {setup.wheels?.RR?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.RR?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                   </div>
@@ -290,7 +299,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow"
           >
-            Fermer
+            Close
           </button>
         </div>
       </div>
