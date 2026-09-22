@@ -203,7 +203,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                   key={setup.id}
                   className={`p-3.5 rounded-xl border transition ${
                     isActive
-                      ? 'bg-slate-950 border-emerald-500/70 ring-1 ring-emerald-500/40'
+                      ? 'bg-slate-950 border-orange-500/70 ring-1 ring-orange-500/40'
                       : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
                   }`}
                 >
@@ -211,7 +211,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-sm text-white">{setup.name}</h4>
                       {isActive && (
-                        <span className="text-[10px] font-bold uppercase bg-emerald-500 text-slate-950 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase bg-orange-500 text-slate-950 px-2 py-0.5 rounded">
                           Active
                         </span>
                       )}
@@ -220,9 +220,9 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                       <button
                         onClick={() => downloadSetupPdf(vehicle, setup)}
                         title="Download complete setup sheet in PDF format"
-                        className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-1 font-bold transition"
+                        className="p-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 text-orange-300 text-xs flex items-center gap-1 font-bold transition"
                       >
-                        <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                        <FileText className="w-3.5 h-3.5 text-orange-400" />
                         <span className="hidden sm:inline">PDF</span>
                       </button>
                       <button
@@ -242,7 +242,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                       {!isActive && (
                         <button
                           onClick={() => handleSelectActive(setup.id)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 hover:text-slate-950 text-slate-200 text-xs font-bold rounded-lg transition"
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-orange-600 hover:text-slate-950 text-slate-200 text-xs font-bold rounded-lg transition"
                         >
                           Activate
                         </button>
@@ -264,25 +264,25 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                   <div className="grid grid-cols-4 gap-1.5 bg-slate-900/80 p-2 rounded-lg text-center text-xs font-mono">
                     <div>
                       <span className="text-[10px] text-slate-400 block">FL</span>
-                      <span className="font-bold text-emerald-400">
+                      <span className="font-bold text-orange-400">
                         {setup.wheels?.FL?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.FL?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block">FR</span>
-                      <span className="font-bold text-emerald-400">
+                      <span className="font-bold text-orange-400">
                         {setup.wheels?.FR?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.FR?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block">RL</span>
-                      <span className="font-bold text-emerald-400">
+                      <span className="font-bold text-orange-400">
                         {setup.wheels?.RL?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.RL?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block">RR</span>
-                      <span className="font-bold text-emerald-400">
+                      <span className="font-bold text-orange-400">
                         {setup.wheels?.RR?.camber?.toFixed(1) ?? '-'}° / {setup.wheels?.RR?.toe?.toFixed(1) ?? '-'}°
                       </span>
                     </div>
@@ -297,7 +297,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
         <div className="p-3 border-t border-slate-800 bg-slate-950 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow"
+            className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs transition shadow"
           >
             Close
           </button>

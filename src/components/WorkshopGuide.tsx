@@ -79,9 +79,9 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
         <div className="flex items-center gap-2.5">
           <div
             className="p-2 rounded-xl text-white shadow"
-            style={{ backgroundColor: settings?.targetColor || '#10b981' }}
+            style={{ backgroundColor: settings?.targetColor || '#f97316' }}
           >
-            <Wrench className="w-5 h-5" />
+            <Wrench className="w-5 h-5 text-slate-950" />
           </div>
           <div>
             <h2
@@ -107,7 +107,7 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             onClick={() => handleTabChange('camber')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
               selectedTab === 'camber'
-                ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                ? 'bg-orange-500 text-slate-950 shadow-md font-extrabold'
                 : isSunMode
                 ? 'text-slate-600 hover:text-slate-900'
                 : 'text-slate-400 hover:text-slate-200'
@@ -120,7 +120,7 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             onClick={() => handleTabChange('toe')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
               selectedTab === 'toe'
-                ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                ? 'bg-orange-500 text-slate-950 shadow-md font-extrabold'
                 : isSunMode
                 ? 'text-slate-600 hover:text-slate-900'
                 : 'text-slate-400 hover:text-slate-200'
@@ -133,7 +133,7 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             onClick={() => handleTabChange('caster')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
               selectedTab === 'caster'
-                ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                ? 'bg-orange-500 text-slate-950 shadow-md font-extrabold'
                 : isSunMode
                 ? 'text-slate-600 hover:text-slate-900'
                 : 'text-slate-400 hover:text-slate-200'
@@ -151,8 +151,8 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
           {/* Header Banner */}
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-emerald-400" />
-              <span className="font-mono font-black text-sm tracking-wider uppercase text-emerald-400">
+              <Eye className="w-4 h-4 text-orange-400" />
+              <span className="font-mono font-black text-sm tracking-wider uppercase text-orange-400">
                 {t.frontViewCamber}
               </span>
             </div>
@@ -173,7 +173,7 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold flex items-center justify-center">
                   1
                 </span>
                 <span className="font-bold text-xs text-slate-200">{t.camberStep1Title}</span>
@@ -181,19 +181,19 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
               <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.camberStep1Desc}</p>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 space-y-1.5">
+            <div className="p-3.5 rounded-xl border border-orange-500/30 bg-orange-950/20 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 text-xs font-black flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-orange-500 text-slate-950 text-xs font-black flex items-center justify-center">
                   2
                 </span>
-                <span className="font-bold text-xs text-emerald-300">{t.camberStep2Title}</span>
+                <span className="font-bold text-xs text-orange-300">{t.camberStep2Title}</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed pl-7">{t.camberStep2Desc}</p>
             </div>
 
             <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold flex items-center justify-center">
                   3
                 </span>
                 <span className="font-bold text-xs text-slate-200">{t.camberStep3Title}</span>

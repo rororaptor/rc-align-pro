@@ -64,8 +64,8 @@ export function generateSetupPdf(
 
   // Colors
   const darkBg = [15, 23, 42];       // slate-900
-  const emerald = [16, 185, 129];     // emerald-500
-  const emeraldDark = [6, 78, 59];    // emerald-900
+  const orange = [249, 115, 22];     // orange-500
+  const orangeDark = [154, 52, 18];   // orange-800
   const slateText = [51, 65, 85];     // slate-700
   const slateLight = [241, 245, 249]; // slate-100
   const slateBorder = [203, 213, 225];// slate-300
@@ -81,8 +81,8 @@ export function generateSetupPdf(
   doc.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
   doc.roundedRect(marginX, headerY, contentWidth, headerHeight, 2, 2, 'F');
 
-  // Emerald accent left bar
-  doc.setFillColor(emerald[0], emerald[1], emerald[2]);
+  // Orange accent left bar
+  doc.setFillColor(orange[0], orange[1], orange[2]);
   doc.rect(marginX, headerY, 3.5, headerHeight, 'F');
 
   // Title Text
@@ -92,7 +92,7 @@ export function generateSetupPdf(
   doc.text('RC ALIGN PRO', marginX + 7, headerY + 7);
 
   doc.setFontSize(8);
-  doc.setTextColor(16, 185, 129);
+  doc.setTextColor(249, 115, 22);
   doc.setFont('helvetica', 'bold');
   doc.text('by rororaptor', marginX + 41, headerY + 7);
 
@@ -191,7 +191,7 @@ export function generateSetupPdf(
   // Travel direction banner
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(16, 185, 129);
+  doc.setTextColor(249, 115, 22);
   doc.text('FRONT (DIRECTION OF TRAVEL ^)', marginX + contentWidth / 2, schematicY + 6.5, { align: 'center' });
 
   // Center chassis drawing parameters
@@ -291,7 +291,7 @@ export function generateSetupPdf(
     doc.setTextColor(100, 116, 139);
     doc.text('Camber :', x + 2.5, lineY);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(camberCheck === 'ok' ? 16 : camberCheck === 'warn' ? 217 : 100, camberCheck === 'ok' ? 140 : camberCheck === 'warn' ? 119 : 116, camberCheck === 'ok' ? 90 : 6);
+    doc.setTextColor(camberCheck === 'ok' ? 234 : camberCheck === 'warn' ? 217 : 100, camberCheck === 'ok' ? 88 : camberCheck === 'warn' ? 119 : 116, camberCheck === 'ok' ? 12 : 6);
     doc.text(formatAngle(data.camber), x + boxW - 2.5, lineY, { align: 'right' });
 
     // Toe Line
@@ -300,7 +300,7 @@ export function generateSetupPdf(
     doc.setTextColor(100, 116, 139);
     doc.text('Toe :', x + 2.5, lineY);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(toeCheck === 'ok' ? 16 : toeCheck === 'warn' ? 217 : 100, toeCheck === 'ok' ? 140 : toeCheck === 'warn' ? 119 : 116, toeCheck === 'ok' ? 90 : 6);
+    doc.setTextColor(toeCheck === 'ok' ? 234 : toeCheck === 'warn' ? 217 : 100, toeCheck === 'ok' ? 88 : toeCheck === 'warn' ? 119 : 116, toeCheck === 'ok' ? 12 : 6);
     doc.text(formatAngle(data.toe), x + boxW - 2.5, lineY, { align: 'right' });
 
     // Caster Line (if front) or Target Note (if rear)
@@ -310,7 +310,7 @@ export function generateSetupPdf(
       doc.setTextColor(100, 116, 139);
       doc.text('Caster :', x + 2.5, lineY);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(casterCheck === 'ok' ? 16 : casterCheck === 'warn' ? 217 : 100, casterCheck === 'ok' ? 140 : casterCheck === 'warn' ? 119 : 116, casterCheck === 'ok' ? 90 : 6);
+      doc.setTextColor(casterCheck === 'ok' ? 234 : casterCheck === 'warn' ? 217 : 100, casterCheck === 'ok' ? 88 : casterCheck === 'warn' ? 119 : 116, casterCheck === 'ok' ? 12 : 6);
       doc.text(formatAngle(data.caster), x + boxW - 2.5, lineY, { align: 'right' });
     } else {
       doc.setFont('helvetica', 'normal');
@@ -471,7 +471,7 @@ export function generateSetupPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     if (camberStatus === 'ok') {
-      doc.setTextColor(16, 140, 90);
+      doc.setTextColor(234, 88, 12);
     } else if (camberStatus === 'warn') {
       doc.setTextColor(217, 119, 6);
     } else {
@@ -494,7 +494,7 @@ export function generateSetupPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     if (toeStatus === 'ok') {
-      doc.setTextColor(16, 140, 90);
+      doc.setTextColor(234, 88, 12);
     } else if (toeStatus === 'warn') {
       doc.setTextColor(217, 119, 6);
     } else {

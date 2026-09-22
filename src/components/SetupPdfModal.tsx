@@ -96,13 +96,13 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/70">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
               <FileText className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <span>Official PDF Setup Sheet</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase font-bold">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 uppercase font-bold">
                   A4 Format
                 </span>
               </h2>
@@ -123,12 +123,12 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
           {/* Quick Success Toast */}
           {downloadSuccess && (
-            <div className="bg-emerald-950/80 border border-emerald-500/60 rounded-xl p-3 flex items-center justify-between text-emerald-300 font-mono text-xs animate-in fade-in">
+            <div className="bg-orange-950/80 border border-orange-500/60 rounded-xl p-3 flex items-center justify-between text-orange-300 font-mono text-xs animate-in fade-in">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-orange-400" />
                 <span>PDF setup sheet successfully generated and downloaded!</span>
               </div>
-              <span className="text-[10px] text-emerald-400/80">Check your downloads folder</span>
+              <span className="text-[10px] text-orange-400/80">Check your downloads folder</span>
             </div>
           )}
 
@@ -136,13 +136,13 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
               <div className="flex items-center gap-2">
-                <Car className="w-4 h-4 text-emerald-400" />
+                <Car className="w-4 h-4 text-orange-400" />
                 <span className="font-bold text-sm text-slate-200">{vehicle.name}</span>
                 <span className="text-[10px] font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">
                   {vehicle.scale} &bull; {vehicle.drivetrain}
                 </span>
               </div>
-              <span className="font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+              <span className="font-mono text-orange-400 font-bold bg-orange-950/60 px-2 py-0.5 rounded border border-orange-500/30">
                 Setup: {setup.name}
               </span>
             </div>
@@ -175,13 +175,13 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
                 <div className="space-y-0.5 font-mono text-[11px]">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Camber:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.FL.camber !== null ? `${wheels.FL.camber.toFixed(1)}°` : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Toe:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.FL.toe !== null ? `${wheels.FL.toe.toFixed(1)}°` : '-'}
                     </span>
                   </div>
@@ -202,13 +202,13 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
                 <div className="space-y-0.5 font-mono text-[11px]">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Camber:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.FR.camber !== null ? `${wheels.FR.camber.toFixed(1)}°` : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Toe:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.FR.toe !== null ? `${wheels.FR.toe.toFixed(1)}°` : '-'}
                     </span>
                   </div>
@@ -229,13 +229,13 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
                 <div className="space-y-0.5 font-mono text-[11px]">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Camber:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.RL.camber !== null ? `${wheels.RL.camber.toFixed(1)}°` : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Toe:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.RL.toe !== null ? `${wheels.RL.toe.toFixed(1)}°` : '-'}
                     </span>
                   </div>
@@ -254,13 +254,13 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
                 <div className="space-y-0.5 font-mono text-[11px]">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Camber:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.RR.camber !== null ? `${wheels.RR.camber.toFixed(1)}°` : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Toe:</span>
-                    <span className="font-bold text-emerald-400">
+                    <span className="font-bold text-orange-400">
                       {wheels.RR.toe !== null ? `${wheels.RR.toe.toFixed(1)}°` : '-'}
                     </span>
                   </div>
@@ -278,21 +278,21 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
               <div className="flex items-center gap-3">
                 <span>
                   Front Axle: &Delta;Camber{' '}
-                  <strong className="text-emerald-400">
+                  <strong className="text-orange-400">
                     {frontCamberDelta !== null ? `${frontCamberDelta.toFixed(1)}°` : '-'}
                   </strong>{' '}
                   | &Delta;Toe{' '}
-                  <strong className="text-emerald-400">
+                  <strong className="text-orange-400">
                     {frontToeDelta !== null ? `${frontToeDelta.toFixed(1)}°` : '-'}
                   </strong>
                 </span>
                 <span>
                   Rear Axle: &Delta;Camber{' '}
-                  <strong className="text-emerald-400">
+                  <strong className="text-orange-400">
                     {rearCamberDelta !== null ? `${rearCamberDelta.toFixed(1)}°` : '-'}
                   </strong>{' '}
                   | &Delta;Toe{' '}
-                  <strong className="text-emerald-400">
+                  <strong className="text-orange-400">
                     {rearToeDelta !== null ? `${rearToeDelta.toFixed(1)}°` : '-'}
                   </strong>
                 </span>
@@ -316,7 +316,7 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
                 onChange={(e) => setCustomNotes(e.target.value)}
                 placeholder="e.g., High-grip abrasive carpet, 450cst shock oil, new rear tires, stable on corner exit..."
                 rows={2}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-slate-200 text-xs focus:border-orange-500 focus:outline-none"
               />
             </div>
 
@@ -326,7 +326,7 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
                 type="checkbox"
                 checked={includeHandwrittenLines}
                 onChange={(e) => setIncludeHandwrittenLines(e.target.checked)}
-                className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20"
+                className="rounded border-slate-700 bg-slate-900 text-orange-500 focus:ring-orange-500/20"
               />
               <span>
                 Include dotted writing lines for handwritten pit notes and scrutineering signatures
@@ -336,7 +336,7 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
 
           {/* PDF Inclusions Notice */}
           <div className="bg-slate-950/40 border border-slate-800/80 rounded-lg p-2.5 text-[11px] text-slate-400 font-mono leading-relaxed">
-            <strong className="text-emerald-400 block mb-0.5">Official Setup Sheet Contents:</strong>
+            <strong className="text-orange-400 block mb-0.5">Official Setup Sheet Contents:</strong>
             &bull; Chassis vector diagram with angle readings per wheel (FL, FR, RL, RR)<br />
             &bull; Compliance table and automatic Left/Right symmetry delta calculation<br />
             &bull; Target tolerance specifications from manufacturer / driver profile<br />
@@ -366,7 +366,7 @@ export const SetupPdfModal: React.FC<SetupPdfModalProps> = ({
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs flex items-center gap-2 transition shadow-lg shadow-orange-500/20 disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               <span>{isDownloading ? 'Generating...' : 'Download PDF Sheet'}</span>

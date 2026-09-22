@@ -52,8 +52,8 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
           }`}
         >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl text-white shadow bg-emerald-500">
-              <Settings className="w-5 h-5" />
+            <div className="p-2 rounded-xl text-white shadow bg-orange-500">
+              <Settings className="w-5 h-5 text-slate-950" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold tracking-tight">
@@ -76,7 +76,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
           {/* 1. Language Option: Exactly 3 languages ('fr', 'en', 'de') */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 font-bold text-slate-200">
-              <Languages className="w-4 h-4 text-sky-400" />
+              <Languages className="w-4 h-4 text-orange-400" />
               <span>{t.languageSection}</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">{t.languageDesc}</p>
@@ -93,7 +93,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
                   onClick={() => update('language', item.id)}
                   className={`px-3 py-3 rounded-xl border text-xs font-semibold text-center transition flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
                     settings.language === item.id
-                      ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold shadow-sm ring-1 ring-emerald-500'
+                      ? 'border-orange-500 bg-orange-500/20 text-orange-300 font-bold shadow-sm ring-1 ring-orange-500'
                       : settings.theme === 'light'
                       ? 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
                       : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-300'
@@ -102,7 +102,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
                   <span className="text-xl">{item.flag}</span>
                   <span>{item.label}</span>
                   {settings.language === item.id && (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-orange-400" />
                   )}
                 </button>
               ))}
@@ -115,7 +115,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
               {settings.theme === 'light' ? (
                 <Sun className="w-4 h-4 text-amber-400" />
               ) : (
-                <Moon className="w-4 h-4 text-indigo-400" />
+                <Moon className="w-4 h-4 text-orange-400" />
               )}
               <span>{t.themeSection}</span>
             </div>
@@ -125,7 +125,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
                 onClick={() => update('theme', 'dark')}
                 className={`px-3.5 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition cursor-pointer ${
                   settings.theme === 'dark'
-                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 shadow-sm font-bold'
+                    ? 'border-orange-500 bg-orange-500/15 text-orange-300 shadow-sm font-bold'
                     : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
                 }`}
               >
@@ -149,7 +149,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
           {/* 3. Value Display Format: Integer or 0.5 Step */}
           <div className="space-y-2 pt-2 border-t border-slate-800/70">
             <div className="flex items-center gap-2 font-bold text-slate-200">
-              <Binary className="w-4 h-4 text-emerald-400" />
+              <Binary className="w-4 h-4 text-orange-400" />
               <span>{t.valueFormatSection}</span>
             </div>
             <p className="text-xs text-slate-400">{t.valueFormatDesc}</p>
@@ -158,13 +158,13 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
                 onClick={() => update('valueFormat', 'integer')}
                 className={`p-3 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
                   settings.valueFormat === 'integer'
-                    ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold shadow-sm'
+                    ? 'border-orange-500 bg-orange-500/15 text-orange-300 font-bold shadow-sm'
                     : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   {settings.valueFormat === 'integer' ? (
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <Check className="w-4 h-4 text-orange-400 shrink-0" />
                   ) : (
                     <div className="w-4 h-4 rounded-full border border-slate-600 shrink-0" />
                   )}
@@ -186,13 +186,13 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
                 onClick={() => update('valueFormat', 'step05')}
                 className={`p-3 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
                   settings.valueFormat === 'step05'
-                    ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold shadow-sm'
+                    ? 'border-orange-500 bg-orange-500/15 text-orange-300 font-bold shadow-sm'
                     : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   {settings.valueFormat === 'step05' ? (
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <Check className="w-4 h-4 text-orange-400 shrink-0" />
                   ) : (
                     <div className="w-4 h-4 rounded-full border border-slate-600 shrink-0" />
                   )}
@@ -205,7 +205,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300">
+                <span className="text-[10px] font-mono bg-orange-500/20 px-2 py-0.5 rounded text-orange-300">
                   0.5°
                 </span>
               </button>
@@ -216,20 +216,20 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
           <div className="space-y-2 pt-2 border-t border-slate-800/70">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 font-bold text-slate-200">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <Smartphone className="w-4 h-4 text-orange-400" />
                 <span>{t.screenWakeLockSection}</span>
               </div>
               <button
                 onClick={() => update('keepScreenAwake', !settings.keepScreenAwake)}
                 className={`w-12 h-6 flex items-center rounded-full p-1 transition duration-300 cursor-pointer ${
-                  settings.keepScreenAwake ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
+                  settings.keepScreenAwake ? 'bg-orange-500 justify-end' : 'bg-slate-700 justify-start'
                 }`}
               >
                 <div className="w-4 h-4 bg-white rounded-full shadow-md transform" />
               </button>
             </div>
             <p className="text-xs text-slate-400">{t.screenWakeLockDesc}</p>
-            <span className="text-[11px] font-mono text-emerald-400 block">
+            <span className="text-[11px] font-mono text-orange-400 block">
               {settings.keepScreenAwake ? `✓ ${t.screenWakeLockActive}` : `• ${t.screenWakeLockInactive}`}
             </span>
           </div>
@@ -245,7 +245,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
         >
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs transition shadow cursor-pointer"
           >
             {t.close}
           </button>

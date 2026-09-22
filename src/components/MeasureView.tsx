@@ -14,8 +14,6 @@ import {
   Lock,
   Unlock,
   Save,
-  Smartphone,
-  ShieldCheck,
   ArrowRight,
   ArrowLeft,
   Layers,
@@ -260,76 +258,27 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
         </div>
       </div>
 
-      {/* Screen Orientation Lock & Polarity Status Bar */}
-      <div
-        className={`flex items-center justify-between rounded-xl px-3 py-1.5 mb-3 text-xs flex-wrap gap-2 border ${
-          isSunMode
-            ? 'bg-slate-100 border-slate-300 text-slate-800'
-            : 'bg-slate-950/80 border-slate-800/80 text-slate-200'
-        }`}
-      >
-        {/* Orientation Lock */}
-        <div className="flex items-center gap-2">
-          {isOrientationLocked ? (
-            <span className="flex items-center gap-1.5 text-orange-400 font-semibold text-[11px]">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{t.portraitLocked}</span>
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-amber-300 font-medium text-[11px]">
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>{t.freeRotation}</span>
-            </span>
-          )}
-          {onLockOrientation && !isOrientationLocked && (
-            <button
-              onClick={onLockOrientation}
-              className="px-2 py-0.5 rounded bg-orange-600 hover:bg-orange-500 text-white font-bold text-[10px] transition shadow-sm"
-            >
-              {t.lockPortrait}
-            </button>
-          )}
-        </div>
-
-        {/* Polarity / Sign Invert Indicator & Quick Action */}
-        {onToggleSignReversed && (
-          <button
-            id="btn-quick-invert-sign"
-            onClick={onToggleSignReversed}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition flex items-center gap-1.5 border ${
-              isSignReversed
-                ? 'bg-purple-950/80 border-purple-500/70 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
-                : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
-            }`}
-            title="Invert angle sign"
-          >
-            <span className="font-extrabold text-xs">±</span>
-            <span>{isSignReversed ? t.invertedSign : t.standardSign}</span>
-          </button>
-        )}
-      </div>
-
       {/* Main Inclinometer Needle Dial & Digital Readout */}
-      <div className="flex flex-col items-center justify-center my-1 text-center relative py-1">
+      <div className="flex flex-col items-center justify-center flex-1 my-auto text-center relative py-2">
         {/* Wheel and Measurement Badge */}
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-orange-400 bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-500/30">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-sans font-bold uppercase tracking-wider text-orange-400 bg-orange-950/60 px-3 py-1 rounded-full border border-orange-500/30">
             {wheelLabels[selectedWheel]}
           </span>
           {isHeld && (
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 animate-pulse">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 animate-pulse">
               <Lock className="w-3 h-3" /> Frozen (Hold)
             </span>
           )}
           {isSignReversed && (
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-500/30">
+            <span className="text-[10px] font-sans font-bold px-2.5 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-500/30">
               ± Inverted
             </span>
           )}
         </div>
 
-        {/* Enlarged Needle Dial with curved arc from -20° to +20° and high-visibility graduation bars */}
-        <div className="w-full max-w-[480px] sm:max-w-[540px] mx-auto select-none pt-2 pb-0">
+        {/* Enlarged Needle Dial with curved arc from -20° to +20° filling screen */}
+        <div className="w-full mx-auto select-none pt-2 pb-0">
           <svg
             viewBox="0 0 460 215"
             className="w-full h-auto overflow-visible"
@@ -360,14 +309,14 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                   stroke={
                     isSunMode
                       ? t.isZero
-                        ? '#0284c7'
+                        ? '#ea580c'
                         : t.isMajor
                         ? '#0f172a'
                         : t.isInteger
                         ? '#334155'
                         : '#94a3b8'
                       : t.isZero
-                      ? '#00f0ff'
+                      ? '#fb923c'
                       : t.isMajor
                       ? '#ffffff'
                       : t.isInteger
@@ -388,14 +337,14 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                     fill={
                       isSunMode
                         ? t.isZero
-                          ? '#0284c7'
+                          ? '#ea580c'
                           : '#0f172a'
                         : t.isZero
-                        ? '#00f0ff'
+                        ? '#fb923c'
                         : '#f8fafc'
                     }
-                    fontSize="12"
-                    fontFamily="monospace"
+                    fontSize="13"
+                    fontFamily="system-ui, -apple-system, sans-serif"
                     fontWeight={t.isZero ? '900' : '700'}
                   >
                     {t.deg > 0 ? `+${t.deg}°` : `${t.deg}°`}
@@ -436,10 +385,10 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
           </svg>
         </div>
 
-        {/* Big Digital Degrees Readout below the needle */}
-        <div className="relative my-1 select-none">
+        {/* Big Digital Degrees Readout below the needle (clean sans-serif, no bar in zero) */}
+        <div className="relative my-3 select-none">
           <div
-            className={`font-mono text-7xl sm:text-8xl md:text-9xl font-black tracking-tighter transition-colors duration-150 ${
+            className={`font-sans tabular-nums text-8xl sm:text-9xl md:text-[10.5rem] font-bold tracking-tight leading-none transition-colors duration-150 ${
               isHeld
                 ? 'text-amber-500'
                 : isSunMode
@@ -447,7 +396,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
                 : 'text-white'
             }`}
           >
-            {formatAngleValue(safeAngle, settings?.valueFormat, true)}
+            {formatAngleValue(safeAngle, settings?.valueFormat, false)}
           </div>
 
           {/* Subtext description for Toe */}
@@ -509,7 +458,7 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
         {/* Current Saved value on active wheel */}
         <div className={`text-xs my-2 ${isSunMode ? 'text-slate-600' : 'text-slate-400'}`}>
           {wheelLabels[selectedWheel]}:{' '}
-          <span className={`font-mono font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
+          <span className={`font-sans tabular-nums font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
             {currentSavedVal !== null
               ? formatAngleValue(currentSavedVal, settings?.valueFormat, true)
               : '--'}
