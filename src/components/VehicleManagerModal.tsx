@@ -116,7 +116,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
           <div className="flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-emerald-400" />
+            <Settings2 className="w-5 h-5 text-orange-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">
               RC Vehicles & Chassis Manager
             </h2>
@@ -143,7 +143,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
                     v.id === editingVehicleId
-                      ? 'bg-emerald-500 text-slate-950 font-bold shadow'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
@@ -155,7 +155,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
 
             <button
               onClick={() => setIsCreating(!isCreating)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow"
+              className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Vehicle</span>
@@ -164,8 +164,8 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
 
           {/* Creation Form */}
           {isCreating && (
-            <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-4 space-y-3 animate-in fade-in">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+            <div className="bg-slate-950 border border-orange-500/40 rounded-xl p-4 space-y-3 animate-in fade-in">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-orange-400">
                 Add New RC Chassis
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -176,7 +176,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                     placeholder="e.g. Mugen MBX8R 2024"
                     value={newVehicleName}
                     onChange={(e) => setNewVehicleName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -184,7 +184,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   <select
                     value={selectedPresetId}
                     onChange={(e) => setSelectedPresetId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                   >
                     {CHASSIS_PRESETS.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -203,7 +203,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                 </button>
                 <button
                   onClick={handleCreateVehicle}
-                  className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg shadow"
+                  className="px-4 py-1.5 bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs rounded-lg shadow"
                 >
                   Create Vehicle
                 </button>
@@ -251,7 +251,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                     type="text"
                     value={currentEditing.name}
                     onChange={(e) => handleUpdateCurrent('name', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -259,7 +259,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                   <select
                     value={currentEditing.scale}
                     onChange={(e) => handleUpdateCurrent('scale', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   >
                     <option value="1/12">1/12</option>
                     <option value="1/10">1/10</option>
@@ -274,7 +274,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                     type="number"
                     value={currentEditing.wheelbaseMm}
                     onChange={(e) => handleUpdateCurrent('wheelbaseMm', parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -283,14 +283,14 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
                     type="number"
                     value={currentEditing.trackWidthMm}
                     onChange={(e) => handleUpdateCurrent('trackWidthMm', parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   />
                 </div>
               </div>
 
               {/* Custom Target Angles (Recommended tolerances) */}
               <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 sm:p-4 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-orange-400">
                   Target Angle Tolerances (Live Smartphone Targets)
                 </h4>
 
@@ -469,7 +469,7 @@ export const VehicleManagerModal: React.FC<VehicleManagerModalProps> = ({
         <div className="p-3 border-t border-slate-800 bg-slate-950 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow"
+            className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs transition shadow"
           >
             Close & Apply
           </button>

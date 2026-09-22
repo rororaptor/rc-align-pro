@@ -509,16 +509,12 @@ export function useDeviceSensors(
 
     liveAngle = isLeftWheel ? diff : -diff;
   } else {
-    // Caster (Chasse): Spirit level with wheels removed, chassis flat on workbench,
-    // placing right or left edge of smartphone against the steering knuckle (fusée)
+    // Caster (Chasse): Uses the exact same high-precision roll inclinometer sensor as camber and toe
     let rawCasterTilt = sensorValues.roll - calibration.zeroRoll;
-    if (Math.abs(sensorValues.rawPitch) > Math.abs(sensorValues.rawRoll)) {
-      rawCasterTilt = sensorValues.pitch - calibration.zeroPitch;
-    }
     if (Math.abs(rawCasterTilt) < 0.08) {
       rawCasterTilt = 0;
     }
-    liveAngle = rawCasterTilt;
+    liveAngle = isLeftWheel ? rawCasterTilt : -rawCasterTilt;
   }
 
   // Apply user-defined polarity inversion (+ / -) if active
@@ -526,12 +522,12 @@ export function useDeviceSensors(
     liveAngle = -liveAngle;
   }
 
-  // Rounded strictly to 0.5 degree precision (increments: -2.0, -1.5, -1.0, -0.5, 0.0, +0.5, +1.0, +1.5...)
-  let rounded = Math.round(liveAngle * 2) / 2;
-  if (Math.abs(rounded) < 0.01) {
+  // Strictly integer precision: whole numbers only, no decimals, no 0.5 step
+  let rounded = Math.round(liveAngle);
+  if (Object.is(rounded, -0)) {
     rounded = 0;
   }
-  const displayAngle = isHeld && heldAngle !== null ? Math.round(heldAngle * 2) / 2 : rounded;
+  const displayAngle = isHeld && heldAngle !== null ? Math.round(heldAngle) : rounded;
 
   return {
     permissionState,

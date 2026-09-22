@@ -8,7 +8,6 @@ import {
   AppSettings,
 } from './types';
 import { Header } from './components/Header';
-import { ChassisVisualizer } from './components/ChassisVisualizer';
 import { MeasureView } from './components/MeasureView';
 import { WorkshopGuide } from './components/WorkshopGuide';
 import { VehicleManagerModal } from './components/VehicleManagerModal';
@@ -28,20 +27,21 @@ import {
   Wrench,
   Smartphone,
   Radio,
-  Sparkles,
+  Copy,
+  FileText,
 } from 'lucide-react';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  language: 'system',
+  language: 'fr',
   theme: 'dark',
-  valueFormat: 'decimal',
+  valueFormat: 'integer',
   keepScreenAwake: false,
   screenKeepAwake: false,
-  targetSoundEnabled: true,
-  targetVibrationEnabled: true,
-  targetBgGlowEnabled: true,
-  targetBackgroundGlow: true,
-  targetColor: '#10b981',
+  targetSoundEnabled: false,
+  targetVibrationEnabled: false,
+  targetBgGlowEnabled: false,
+  targetBackgroundGlow: false,
+  targetColor: '#f97316',
 };
 
 export default function App() {
@@ -261,39 +261,37 @@ export default function App() {
     updateVehicles(updatedVehicles);
   };
 
+  // Synchronized theme handler (Outdoor Sun vs OLED Dark)
+  const handleSetTheme = (newTheme: ThemeMode) => {
+    setTheme(newTheme);
+    localStorage.setItem('rc_theme', newTheme);
+    const mappedTheme = newTheme === 'sun_contrast' ? 'light' : 'dark';
+    if (settings.theme !== mappedTheme) {
+      setSettings((prev) => ({ ...prev, theme: mappedTheme }));
+    }
+  };
+
+  const handleUpdateSettings = (newSettings: AppSettings) => {
+    setSettings(newSettings);
+    const expectedTheme: ThemeMode = newSettings.theme === 'light' ? 'sun_contrast' : 'dark_circuit';
+    if (theme !== expectedTheme) {
+      setTheme(expectedTheme);
+      localStorage.setItem('rc_theme', expectedTheme);
+    }
+  };
+
   // Theme container classes
-  const isLight = settings.theme === 'light';
-  const themeContainerClass = isLight
-    ? 'bg-slate-900 text-slate-100 min-h-screen transition-all duration-300'
-    : theme === 'sun_contrast'
-    ? 'bg-black text-amber-300 font-medium min-h-screen transition-all duration-300'
+  const isSunMode = theme === 'sun_contrast' || settings.theme === 'light';
+  const themeContainerClass = isSunMode
+    ? 'bg-slate-100 text-slate-900 min-h-screen transition-all duration-300'
     : 'bg-slate-950 text-slate-100 min-h-screen transition-all duration-300';
 
   return (
-    <div
-      className={themeContainerClass}
-      style={{
-        transition: 'background-color 250ms ease, box-shadow 250ms ease',
-        ...(isTargetReached && settings.targetBackgroundGlow
-          ? {
-              backgroundColor: '#021e17',
-              boxShadow: `inset 0 0 140px ${settings.targetColor}44`,
-            }
-          : {}),
-      }}
-    >
-      {/* Target Reached Ambient Top Glow Bar */}
-      {isTargetReached && settings.targetBackgroundGlow && (
-        <div
-          className="h-1.5 w-full animate-pulse sticky top-0 z-50 transition-all duration-300"
-          style={{ backgroundColor: settings.targetColor, boxShadow: `0 0 20px ${settings.targetColor}` }}
-        />
-      )}
-
+    <div className={themeContainerClass}>
       {/* App Header */}
       <Header
         theme={theme}
-        setTheme={setTheme}
+        setTheme={handleSetTheme}
         vehicles={vehicles}
         activeVehicle={activeVehicle}
         onSelectVehicle={(id) => setActiveVehicleId(id)}
@@ -312,9 +310,15 @@ export default function App() {
       <main className="max-w-7xl mx-auto p-3 sm:p-5 space-y-4">
         {/* Quick Help & Sensor Banner if sensors not yet activated */}
         {!hasRealSensors && (
-          <div className="bg-sky-950/70 border border-sky-500/40 rounded-xl p-3 text-xs flex items-center justify-between gap-2 text-sky-200">
+          <div
+            className={`border rounded-xl p-3 text-xs flex items-center justify-between gap-2 ${
+              isSunMode
+                ? 'bg-sky-50 border-sky-300 text-sky-950'
+                : 'bg-sky-950/70 border-sky-500/40 text-sky-200'
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <Radio className="w-4 h-4 text-sky-400 animate-pulse" />
+              <Radio className="w-4 h-4 text-sky-500 animate-pulse" />
               <span>
                 {t.sensorActive}: enable smartphone tilt sensors for real-time inclinometer alignment.
               </span>
@@ -329,32 +333,37 @@ export default function App() {
         )}
 
         {/* Top Active Setup Banner */}
-        <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800/80 rounded-xl px-3 sm:px-4 py-2 text-xs flex-wrap gap-2">
+        <div
+          className={`flex items-center justify-between border rounded-xl px-3 sm:px-4 py-2 text-xs flex-wrap gap-2 ${
+            isSunMode
+              ? 'bg-white border-slate-300 shadow-sm text-slate-800'
+              : 'bg-slate-900/60 border-slate-800/80 text-slate-200'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 font-mono">{t.vehicle}:</span>
-            <span className="font-bold text-slate-200">{activeVehicle.name}</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400 font-mono">{t.setup}:</span>
-            <span className="font-semibold" style={{ color: settings.targetColor }}>
+            <span className={`font-mono ${isSunMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.vehicle}:</span>
+            <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>{activeVehicle.name}</span>
+            <span className={isSunMode ? 'text-slate-300' : 'text-slate-600'}>|</span>
+            <span className={`font-mono ${isSunMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.setup}:</span>
+            <span className="font-semibold text-orange-600 dark:text-orange-400">
               {activeSetup.name}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+          <div className={`flex items-center gap-2 text-[11px] font-mono ${isSunMode ? 'text-slate-600' : 'text-slate-400'}`}>
             {activeSetup.trackCondition && <span>Track : {activeSetup.trackCondition}</span>}
             <button
               onClick={() => setIsSetupsModalOpen(true)}
-              className="hover:underline font-bold cursor-pointer"
-              style={{ color: settings.targetColor }}
+              className="hover:underline font-bold text-orange-600 dark:text-orange-400 cursor-pointer"
             >
               {t.changeSetup}
             </button>
           </div>
         </div>
 
-        {/* Split Screen Layout: Left = Real-time Measurement Tool, Right = Chassis Visualizer */}
+        {/* Primary Row: MeasureView (Inclinometer) + Setup Summary & Targets */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Main Measurement Tool (7 cols on desktop) */}
+          {/* Main Measurement Inclinometer Tool (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
             <MeasureView
               vehicle={activeVehicle}
@@ -382,85 +391,200 @@ export default function App() {
               theme={theme}
               settings={settings}
             />
-
-            {/* Illustrated Workshop Guide & Conventions */}
-            <WorkshopGuide
-              vehicle={activeVehicle}
-              activeSetup={activeSetup}
-              selectedWheel={selectedWheel}
-              onSelectWheel={setSelectedWheel}
-              activeMeasurement={activeMeasurement}
-              onSelectMeasurement={setActiveMeasurement}
-              settings={settings}
-            />
           </div>
 
-          {/* Interactive Chassis Visualizer (5 cols on desktop) */}
+          {/* Setup Overview & Target Specs (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <ChassisVisualizer
-              vehicle={activeVehicle}
-              activeSetup={activeSetup}
-              selectedWheel={selectedWheel}
-              onSelectWheel={setSelectedWheel}
-              activeMeasurement={activeMeasurement}
-              onSelectMeasurement={setActiveMeasurement}
-              onMirrorWheels={handleMirrorWheels}
-              onExportPdf={() => setIsPdfModalOpen(true)}
-              settings={settings}
-            />
+            {/* 4 Wheels Current Values Card */}
+            <div
+              className={`border rounded-2xl p-4 text-xs shadow-lg ${
+                isSunMode
+                  ? 'bg-white border-slate-300 text-slate-800 shadow-sm'
+                  : 'bg-slate-900/80 border-slate-800 text-slate-200'
+              }`}
+            >
+              <div
+                className={`flex items-center justify-between mb-3 border-b pb-2 ${
+                  isSunMode ? 'border-slate-200' : 'border-slate-800/80'
+                }`}
+              >
+                <span className={`font-bold flex items-center gap-2 ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
+                  <Car className="w-4 h-4 text-orange-500" />
+                  <span>{t.activeSetup}: {activeSetup.name}</span>
+                </span>
+                <button
+                  onClick={() => setIsPdfModalOpen(true)}
+                  className={`px-2.5 py-1 text-[11px] rounded-lg border font-mono transition flex items-center gap-1.5 cursor-pointer ${
+                    isSunMode
+                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-orange-500" />
+                  <span>{t.exportPdfBtn}</span>
+                </button>
+              </div>
+
+              {/* 4 Wheels Quick Grid */}
+              <div className="grid grid-cols-2 gap-2.5 mb-3 font-mono">
+                {(['FL', 'FR', 'RL', 'RR'] as WheelPosition[]).map((pos) => {
+                  const isSel = selectedWheel === pos;
+                  const data = activeSetup?.wheels?.[pos] || { camber: null, toe: null, caster: null };
+                  const isFrontPos = pos === 'FL' || pos === 'FR';
+
+                  return (
+                    <button
+                      key={pos}
+                      onClick={() => setSelectedWheel(pos)}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                        isSel
+                          ? 'border-orange-500 bg-orange-500/10 ring-1 ring-orange-500'
+                          : isSunMode
+                          ? 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                          : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className={`font-extrabold text-xs ${isSunMode ? 'text-slate-900' : 'text-white'}`}>
+                          {pos}
+                        </span>
+                        {isSel && (
+                          <span className="w-2 h-2 rounded-full bg-orange-500" />
+                        )}
+                      </div>
+                      <div className="space-y-0.5 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.camber}:</span>
+                          <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
+                            {formatAngleValue(data.camber, settings.valueFormat, true)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.toe}:</span>
+                          <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
+                            {formatAngleValue(data.toe, settings.valueFormat, true)}
+                          </span>
+                        </div>
+                        {isFrontPos && (
+                          <div className="flex justify-between">
+                            <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.caster}:</span>
+                            <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
+                              {formatAngleValue(data.caster, settings.valueFormat, true)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Symmetry / Mirror Buttons */}
+              <div
+                className={`grid grid-cols-2 gap-2 pt-2 border-t ${
+                  isSunMode ? 'border-slate-200' : 'border-slate-800/80'
+                }`}
+              >
+                <button
+                  onClick={() => handleMirrorWheels('leftToRight')}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition flex items-center justify-center gap-1 border cursor-pointer ${
+                    isSunMode
+                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700/60'
+                  }`}
+                  title="Copy Left values (FL, RL) to Right (FR, RR)"
+                >
+                  <Copy className="w-3 h-3 text-sky-500" />
+                  <span>L &rarr; R ({t.flShort} &rarr; {t.frShort})</span>
+                </button>
+                <button
+                  onClick={() => handleMirrorWheels('rightToLeft')}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition flex items-center justify-center gap-1 border cursor-pointer ${
+                    isSunMode
+                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700/60'
+                  }`}
+                  title="Copy Right values (FR, RR) to Left (FL, RL)"
+                >
+                  <Copy className="w-3 h-3 text-sky-500" />
+                  <span>R &rarr; L ({t.frShort} &rarr; {t.flShort})</span>
+                </button>
+              </div>
+            </div>
 
             {/* Target Specifications Summary Table */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 text-xs">
+            <div
+              className={`border rounded-2xl p-4 text-xs shadow-lg ${
+                isSunMode
+                  ? 'bg-white border-slate-300 text-slate-800 shadow-sm'
+                  : 'bg-slate-900/80 border-slate-800 text-slate-200'
+              }`}
+            >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5" style={{ color: settings.targetColor }} />
+                <span className={`font-bold flex items-center gap-1.5 ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
+                  <Sliders className="w-3.5 h-3.5 text-orange-500" />
                   {t.activeTargets} ({activeVehicle?.name || 'Vehicle'})
                 </span>
                 <button
                   onClick={() => setIsVehicleModalOpen(true)}
-                  className="text-[11px] hover:underline cursor-pointer"
-                  style={{ color: settings.targetColor }}
+                  className="text-[11px] hover:underline cursor-pointer text-orange-600 dark:text-orange-400 font-semibold"
                 >
                   {t.customize}
                 </button>
               </div>
 
               <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between py-0.5 border-b border-slate-800/60">
-                  <span className="text-slate-400">{t.frontAxleCamber}:</span>
-                  <span className="font-bold text-slate-200">
+                <div
+                  className={`flex justify-between py-1 border-b ${
+                    isSunMode ? 'border-slate-200' : 'border-slate-800/60'
+                  }`}
+                >
+                  <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.frontAxleCamber}:</span>
+                  <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
                     {formatAngleValue(activeVehicle?.customTargets?.frontCamber?.min ?? -2.5, settings.valueFormat)}{' '}
                     {t.to}{' '}
                     {formatAngleValue(activeVehicle?.customTargets?.frontCamber?.max ?? -1.5, settings.valueFormat)}
                   </span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-slate-800/60">
-                  <span className="text-slate-400">{t.rearAxleCamber}:</span>
-                  <span className="font-bold text-slate-200">
+                <div
+                  className={`flex justify-between py-1 border-b ${
+                    isSunMode ? 'border-slate-200' : 'border-slate-800/60'
+                  }`}
+                >
+                  <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.rearAxleCamber}:</span>
+                  <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
                     {formatAngleValue(activeVehicle?.customTargets?.rearCamber?.min ?? -2.5, settings.valueFormat)}{' '}
                     {t.to}{' '}
                     {formatAngleValue(activeVehicle?.customTargets?.rearCamber?.max ?? -1.5, settings.valueFormat)}
                   </span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-slate-800/60">
-                  <span className="text-slate-400">{t.frontAxleToe}:</span>
-                  <span className="font-bold text-slate-200">
+                <div
+                  className={`flex justify-between py-1 border-b ${
+                    isSunMode ? 'border-slate-200' : 'border-slate-800/60'
+                  }`}
+                >
+                  <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.frontAxleToe}:</span>
+                  <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
                     {formatAngleValue(activeVehicle?.customTargets?.frontToe?.min ?? -1.5, settings.valueFormat)}{' '}
                     {t.to}{' '}
                     {formatAngleValue(activeVehicle?.customTargets?.frontToe?.max ?? 0, settings.valueFormat)}
                   </span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-slate-800/60">
-                  <span className="text-slate-400">{t.rearAxleToe}:</span>
-                  <span className="font-bold text-slate-200">
+                <div
+                  className={`flex justify-between py-1 border-b ${
+                    isSunMode ? 'border-slate-200' : 'border-slate-800/60'
+                  }`}
+                >
+                  <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.rearAxleToe}:</span>
+                  <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
                     {formatAngleValue(activeVehicle?.customTargets?.rearToe?.min ?? 2.0, settings.valueFormat)}{' '}
                     {t.to}{' '}
                     {formatAngleValue(activeVehicle?.customTargets?.rearToe?.max ?? 3.5, settings.valueFormat)}
                   </span>
                 </div>
-                <div className="flex justify-between py-0.5">
-                  <span className="text-slate-400">{t.frontCasterAngle}:</span>
-                  <span className="font-bold text-slate-200">
+                <div className="flex justify-between py-1">
+                  <span className={isSunMode ? 'text-slate-500' : 'text-slate-400'}>{t.frontCasterAngle}:</span>
+                  <span className={`font-bold ${isSunMode ? 'text-slate-900' : 'text-slate-200'}`}>
                     {formatAngleValue(activeVehicle?.customTargets?.frontCaster?.min ?? 4.0, settings.valueFormat)}{' '}
                     {t.to}{' '}
                     {formatAngleValue(activeVehicle?.customTargets?.frontCaster?.max ?? 6.0, settings.valueFormat)}
@@ -469,6 +593,19 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Full-Width Workshop Guide & Tutorial with Explanatory Drawings */}
+        <div className="pt-2">
+          <WorkshopGuide
+            vehicle={activeVehicle}
+            activeSetup={activeSetup}
+            selectedWheel={selectedWheel}
+            onSelectWheel={setSelectedWheel}
+            activeMeasurement={activeMeasurement}
+            onSelectMeasurement={setActiveMeasurement}
+            settings={settings}
+          />
         </div>
       </main>
 
@@ -505,7 +642,7 @@ export default function App() {
         isOpen={isOptionsModalOpen}
         onClose={() => setIsOptionsModalOpen(false)}
         settings={settings}
-        onUpdateSettings={(newSettings) => setSettings(newSettings)}
+        onUpdateSettings={handleUpdateSettings}
       />
     </div>
   );

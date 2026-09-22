@@ -1,502 +1,437 @@
 import React from 'react';
-import { WheelPosition, VehicleSetupSheet, Vehicle } from '../types';
-import { detectVehicleArchetype, ARCHETYPE_META } from './CarTopView';
-import { createDefaultVehicle } from '../data/chassisPresets';
-import { Navigation, CheckCircle2, AlertCircle, Check } from 'lucide-react';
+import { WheelPosition, Vehicle, VehicleSetupSheet, AppSettings } from '../types';
+import { formatAngleValue } from '../utils/i18n';
 
-interface CarSideViewProps {
+export interface CarSideViewProps {
   vehicle?: Vehicle;
   activeSetup?: VehicleSetupSheet;
   selectedWheel?: WheelPosition;
-  onSelectWheel?: (pos: WheelPosition) => void;
+  onSelectWheel?: (wheel: WheelPosition) => void;
+  settings?: AppSettings;
 }
 
 export const CarSideView: React.FC<CarSideViewProps> = ({
   vehicle,
   activeSetup,
   selectedWheel = 'FL',
-  onSelectWheel = () => {},
+  onSelectWheel,
+  settings,
 }) => {
-  const safeVehicle = vehicle || createDefaultVehicle();
-  const DEFAULT_WHEELS = {
-    FL: { camber: null, toe: null, caster: null, measuredAt: null },
-    FR: { camber: null, toe: null, caster: null, measuredAt: null },
-    RL: { camber: null, toe: null, caster: null, measuredAt: null },
-    RR: { camber: null, toe: null, caster: null, measuredAt: null },
-  };
-  const wheels = activeSetup?.wheels || DEFAULT_WHEELS;
-  const targets = safeVehicle.customTargets;
-  const archetype = detectVehicleArchetype(safeVehicle);
-  const meta = ARCHETYPE_META[archetype];
+  const isSunMode = settings?.theme === 'light';
 
-  // In RC, Caster is on the front axle.
-  // We can view FL (Left side profile) or FR (Right side profile)
-  const isRightWheel = selectedWheel === 'FR' || selectedWheel === 'RR';
-  const activeSide: 'FL' | 'FR' = isRightWheel ? 'FR' : 'FL';
+  // Caster is measured on the front wheels (FL or FR)
+  const isFR = selectedWheel === 'FR';
+  const targetPos: WheelPosition = isFR ? 'FR' : 'FL';
+  const casterAngle = activeSetup?.wheels?.[targetPos]?.caster ?? 4.0;
 
-  const casterVal = wheels[activeSide]?.caster ?? null;
-  const casterRange = targets.frontCaster;
+  // Visual amplification for 2D angle (so 4-6° caster is clearly visible)
+  const VIS_MULT = 2.4;
+  const angleRad = (casterAngle * VIS_MULT * Math.PI) / 180;
 
-  const isAngleInRange = (val: number | null) => {
-    if (val === null) return null;
-    return val >= casterRange.min && val <= casterRange.max;
-  };
+  // Coordinate geometry
+  // Ground plane line at y = 180
+  // Wheels have radius R = 34 => Center Y = 180 - 34 = 146
+  // Front wheel at x = 110, Rear wheel at x = 300
+  const groundY = 180;
+  const wheelRadius = 34;
+  const frontX = 110;
+  const frontY = groundY - wheelRadius; // 146
+  const rearX = 300;
+  const rearY = groundY - wheelRadius;  // 146
 
-  const inRange = isAngleInRange(casterVal);
+  // Kingpin axis (Axe de chasse):
+  // Vehicle moves towards LEFT (Sens de marche ←)
+  // Positive caster tilts the top of the kingpin backwards (towards the rear / right)
+  const topLength = 75;
+  const btmLength = 26;
+  const topKingpinX = frontX + Math.sin(angleRad) * topLength;
+  const topKingpinY = frontY - Math.cos(angleRad) * topLength;
+  const btmKingpinX = frontX - Math.sin(angleRad) * btmLength;
+  const btmKingpinY = frontY + Math.cos(angleRad) * btmLength;
 
-  // Ground and wheelbase coordinates
-  const groundY = 240;
-  const frontHubX = 370;
-  const frontHubY = 195;
-  const rearHubX = 110;
-  const rearHubY = 195;
-
-  const wheelRadius = archetype === 'buggy_tt' ? 45 : 38;
-
-  // Visual tilt angle for Caster (degrees)
-  // Positive caster leans backwards (towards the rear / left in this view).
-  // Standard RC caster is ~4° to 10°.
-  // We use a slight multiplier (x 2.2) to make the angle cleanly legible on SVG.
-  const visualAngle = casterVal !== null ? Math.min(25, Math.max(0, casterVal)) * 2.2 : 12;
-
-  // Calculate coordinates of the inclined kingpin steering axis line
-  // Pivot is at frontHubX, frontHubY.
-  // Leaning backward (leftwards in view) by visualAngle degrees
-  const axisLength = 95;
-  const rad = (visualAngle * Math.PI) / 180;
-  const topKingpinX = frontHubX - Math.sin(rad) * axisLength;
-  const topKingpinY = frontHubY - Math.cos(rad) * axisLength;
-
-  const bottomKingpinX = frontHubX + Math.sin(rad) * (axisLength * 0.35);
-  const bottomKingpinY = frontHubY + Math.cos(rad) * (axisLength * 0.35);
+  // Arc of caster angle at radius R = 54
+  const arcRadius = 54;
+  const arcStartX = frontX;
+  const arcStartY = frontY - arcRadius;
+  const arcEndX = frontX + Math.sin(angleRad) * arcRadius;
+  const arcEndY = frontY - Math.cos(angleRad) * arcRadius;
 
   return (
-    <div className="relative w-full flex flex-col items-center py-1 select-none">
-      {/* Header Banner & Side Selector */}
-      <div className="w-full flex items-center justify-between px-2 pb-2 mb-2 border-b border-slate-800/80 text-xs flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-sky-400 rotate-90" />
-          <span className="font-bold text-slate-200">
-            Side Profile View • Caster Angle
-          </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30">
-            {meta.badge} &bull; Caster
-          </span>
+    <div className="w-full flex flex-col items-center select-none py-1">
+      {/* Top Switcher: Côté Gauche (FL) / Côté Droit (FR) */}
+      <div className="w-full flex items-center justify-between text-xs font-mono px-2 mb-2">
+        <div
+          className={`flex items-center p-0.5 rounded-lg border ${
+            isSunMode ? 'bg-slate-100 border-slate-300' : 'bg-slate-900 border-slate-800'
+          }`}
+        >
+          <button
+            onClick={() => onSelectWheel?.('FL')}
+            className={`px-3 py-1 rounded text-xs font-bold transition cursor-pointer ${
+              !isFR
+                ? 'bg-purple-600 text-white shadow-sm'
+                : isSunMode
+                ? 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Côté Gauche (FL)
+          </button>
+          <button
+            onClick={() => onSelectWheel?.('FR')}
+            className={`px-3 py-1 rounded text-xs font-bold transition cursor-pointer ${
+              isFR
+                ? 'bg-purple-600 text-white shadow-sm'
+                : isSunMode
+                ? 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Côté Droit (FR)
+          </button>
         </div>
 
-        {/* Side Toggle: FL (Left Side) vs FR (Right Side) */}
-        <div className="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-xs font-mono">
-          <button
-            onClick={() => onSelectWheel('FL')}
-            className={`px-2.5 py-1 rounded-md transition font-bold ${
-              activeSide === 'FL'
-                ? 'bg-sky-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-            }`}
-          >
-            Left Side (FL)
-          </button>
-          <button
-            onClick={() => onSelectWheel('FR')}
-            className={`px-2.5 py-1 rounded-md transition font-bold ${
-              activeSide === 'FR'
-                ? 'bg-sky-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-            }`}
-          >
-            Right Side (FR)
-          </button>
-        </div>
+        <span
+          className={`text-[11px] font-mono hidden sm:inline ${
+            isSunMode ? 'text-slate-500' : 'text-slate-400'
+          }`}
+        >
+          Vue Simplifiée • Châssis de Côté
+        </span>
       </div>
 
-      {/* Interactive Side Elevation SVG Schematic */}
-      <div className="relative w-full max-w-[500px]">
+      {/* SVG Canvas for Simplified Side View */}
+      <div
+        className={`w-full max-w-[460px] mx-auto rounded-xl border p-3 shadow-inner ${
+          isSunMode
+            ? 'bg-slate-50 border-slate-300'
+            : 'bg-slate-950/80 border-slate-800/80'
+        }`}
+      >
         <svg
-          viewBox="0 0 500 290"
-          className="w-full h-auto drop-shadow-2xl overflow-visible block"
+          viewBox="0 0 400 215"
+          className="w-full h-auto overflow-visible"
+          aria-label="Schéma simplifié du châssis vu de côté - Chasse"
         >
           <defs>
-            {/* Setup Board Gradient */}
-            <linearGradient id="sideBenchGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#1e293b" />
-              <stop offset="50%" stopColor="#0f172a" />
-              <stop offset="100%" stopColor="#020617" />
+            <linearGradient id="side-ground-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="transparent" />
+              <stop offset="15%" stopColor={isSunMode ? '#94a3b8' : '#475569'} />
+              <stop offset="85%" stopColor={isSunMode ? '#94a3b8' : '#475569'} />
+              <stop offset="100%" stopColor="transparent" />
             </linearGradient>
-
-            {/* Tire Rubber Tread Side Pattern */}
-            <radialGradient id="sideTireGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="60%" stopColor="#090d16" />
-              <stop offset="85%" stopColor="#1e293b" />
-              <stop offset="100%" stopColor="#0f172a" />
-            </radialGradient>
-
-            <pattern id="carbonChassisSide" width="4" height="4" patternUnits="userSpaceOnUse">
-              <rect width="4" height="4" fill="#0b1120" />
-              <rect width="2" height="2" fill="#1e293b" />
-            </pattern>
           </defs>
 
-          {/* ================= BACKGROUND: SETUP BOARD (SOL DE RÉFÉRENCE) ================= */}
-          <rect
-            x="10"
-            y={groundY}
-            width="480"
-            height="18"
-            rx="4"
-            fill="url(#sideBenchGrad)"
-            stroke="#334155"
-            strokeWidth="1.5"
-          />
-          {Array.from({ length: 25 }).map((_, i) => (
-            <line
-              key={`side-grad-${i}`}
-              x1={20 + i * 19}
-              y1={groundY}
-              x2={20 + i * 19}
-              y2={groundY + (i % 5 === 0 ? 8 : 4)}
-              stroke="#475569"
-              strokeWidth={i % 5 === 0 ? '1' : '0.5'}
-            />
-          ))}
-
-          {/* Travel direction arrow and label */}
-          <g transform={`translate(${frontHubX + 35}, ${groundY + 12})`}>
-            <text
-              x="0"
-              y="0"
-              fill="#38bdf8"
-              fontSize="8"
-              fontFamily="monospace"
-              fontWeight="bold"
-            >
-              AVANT (Sens de marche &rarr;)
-            </text>
-          </g>
-
-          {/* ================= CHASSIS PROFILE (FLANC DE CHÂSSIS) ================= */}
-          {/* Main Lower Carbon / Aluminum Plate */}
-          <path
-            d={`M ${rearHubX - 40},${groundY - 14} L ${frontHubX - 25},${groundY - 14} L ${frontHubX + 30},${groundY - 22} L ${frontHubX + 45},${groundY - 22} L ${frontHubX + 30},${groundY - 18} L ${frontHubX - 25},${groundY - 10} L ${rearHubX - 40},${groundY - 10} Z`}
-            fill="url(#carbonChassisSide)"
-            stroke="#64748b"
-            strokeWidth="1"
-          />
-
-          {/* Top Deck / Upper Plate Reinforcement */}
-          <path
-            d={`M ${rearHubX},${groundY - 34} L ${frontHubX - 30},${groundY - 34} L ${frontHubX - 30},${groundY - 31} L ${rearHubX},${groundY - 31} Z`}
-            fill="#334155"
-            stroke="#475569"
-            strokeWidth="0.8"
-          />
-
-          {/* Rear Shock Tower & Wing Stay */}
-          <path
-            d={`M ${rearHubX - 15},${groundY - 14} L ${rearHubX - 25},${groundY - 75} L ${rearHubX - 5},${groundY - 80} L ${rearHubX + 10},${groundY - 14} Z`}
-            fill="#1e293b"
-            stroke="#475569"
-            strokeWidth="1"
-          />
-          {/* Rear Wing profile */}
-          <path
-            d={`M ${rearHubX - 45},${groundY - 95} Q ${rearHubX - 10},${groundY - 90} ${rearHubX - 5},${groundY - 105} L ${rearHubX - 45},${groundY - 100} Z`}
-            fill="#0f172a"
-            stroke="#38bdf8"
-            strokeWidth="1"
-            opacity="0.8"
-          />
-
-          {/* Center Electronics & Motor Silhouette */}
-          <rect
-            x="180"
-            y={groundY - 45}
-            width="80"
-            height="31"
-            rx="4"
-            fill="#0f172a"
-            stroke="#334155"
-            strokeWidth="1"
-          />
-          <circle cx="205" cy={groundY - 30} r="10" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-          <text
-            x="240"
-            y={groundY - 26}
-            fill="#64748b"
-            fontSize="7"
-            fontFamily="monospace"
-          >
-            PACK ACCU / MOTEUR
-          </text>
-
-          {/* Front Shock Tower */}
-          <path
-            d={`M ${frontHubX - 35},${groundY - 14} L ${frontHubX - 42},${groundY - 75} L ${frontHubX - 22},${groundY - 80} L ${frontHubX - 15},${groundY - 14} Z`}
-            fill="#1e293b"
-            stroke="#475569"
-            strokeWidth="1"
-          />
-
-          {/* Front Bumper & Foam */}
-          <path
-            d={`M ${frontHubX + 30},${groundY - 14} L ${frontHubX + 65},${groundY - 14} L ${frontHubX + 70},${groundY - 30} L ${frontHubX + 45},${groundY - 30} Z`}
-            fill="#0f172a"
-            stroke="#475569"
-            strokeWidth="1"
-          />
-
-          {/* ================= REAR WHEEL (VUE DE CÔTÉ) ================= */}
-          <g>
-            <circle
-              cx={rearHubX}
-              cy={rearHubY}
-              r={wheelRadius}
-              fill="url(#sideTireGrad)"
-              stroke="#475569"
-              strokeWidth="2"
-            />
-            {/* Rim & Spokes */}
-            <circle cx={rearHubX} cy={rearHubY} r={wheelRadius * 0.65} fill="#090d16" stroke="#334155" strokeWidth="1" />
-            <circle cx={rearHubX} cy={rearHubY} r="7" fill="#1e293b" stroke="#64748b" strokeWidth="1.2" />
-            <circle cx={rearHubX} cy={rearHubY} r="3" fill="#64748b" />
-            <text
-              x={rearHubX}
-              y={rearHubY + 5}
-              textAnchor="middle"
-              fill="#64748b"
-              fontSize="8"
-              fontFamily="monospace"
-              fontWeight="bold"
-            >
-              {isRightWheel ? 'RR' : 'RL'}
-            </text>
-          </g>
-
-          {/* ================= FRONT WHEEL & CASTER C-HUB ASSEMBLY ================= */}
-          {/* Front Wheel (semi-transparent so the internal C-hub / kingpin angle is clearly seen) */}
-          <g>
-            <circle
-              cx={frontHubX}
-              cy={frontHubY}
-              r={wheelRadius}
-              fill="#090d16"
-              fillOpacity="0.4"
-              stroke={activeSide === 'FL' || activeSide === 'FR' ? '#38bdf8' : '#475569'}
-              strokeWidth="2"
-              strokeDasharray="4 2"
-            />
-            <circle
-              cx={frontHubX}
-              cy={frontHubY}
-              r={wheelRadius * 0.65}
-              fill="none"
-              stroke="#334155"
-              strokeWidth="1"
-              strokeDasharray="3 3"
-            />
-          </g>
-
-          {/* Front Suspension Arm (Side Profile) */}
+          {/* Plan Sol Référence (0°) */}
           <line
-            x1={frontHubX - 45}
-            y1={groundY - 14}
-            x2={frontHubX}
-            y2={frontHubY + 18}
-            stroke="#64748b"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-          />
-
-          {/* Front C-Hub (Étrier de Chasse) angled to match Kingpin Axis */}
-          <g transform={`rotate(${-visualAngle}, ${frontHubX}, ${frontHubY})`}>
-            {/* C-Hub Body C-shape */}
-            <path
-              d={`M ${frontHubX - 10},${frontHubY - 32} L ${frontHubX + 12},${frontHubY - 32} L ${frontHubX + 16},${frontHubY - 18} L ${frontHubX + 16},${frontHubY + 18} L ${frontHubX + 12},${frontHubY + 32} L ${frontHubX - 10},${frontHubY + 32} L ${frontHubX - 4},${frontHubY + 24} L ${frontHubX + 6},${frontHubY + 16} L ${frontHubX + 6},${frontHubY - 16} L ${frontHubX - 4},${frontHubY - 24} Z`}
-              fill="#0284c7"
-              fillOpacity="0.3"
-              stroke="#38bdf8"
-              strokeWidth="1.5"
-            />
-            {/* Upper Pivot Screw / Bushing */}
-            <circle cx={frontHubX} cy={frontHubY - 30} r="4" fill="#0284c7" stroke="#38bdf8" strokeWidth="1" />
-            {/* Lower Pivot Screw / Bushing */}
-            <circle cx={frontHubX} cy={frontHubY + 30} r="4" fill="#0284c7" stroke="#38bdf8" strokeWidth="1" />
-            {/* Hub Axle Spindle */}
-            <circle cx={frontHubX} cy={frontHubY} r="7" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" />
-            <circle cx={frontHubX} cy={frontHubY} r="3" fill="#38bdf8" />
-          </g>
-
-          {/* ================= CASTER ANGLE GEOMETRY & INDICATORS ================= */}
-          {/* Vertical 90° reference line through hub */}
-          <line
-            x1={frontHubX}
-            y1="50"
-            x2={frontHubX}
+            x1="20"
+            y1={groundY}
+            x2="380"
             y2={groundY}
-            stroke="#64748b"
-            strokeWidth="1.2"
-            strokeDasharray="4 4"
+            stroke="url(#side-ground-grad)"
+            strokeWidth="2"
           />
           <text
-            x={frontHubX + 6}
-            y="65"
-            textAnchor="start"
-            fill="#94a3b8"
-            fontSize="8"
-            fontFamily="monospace"
-          >
-            Verticale 90°
-          </text>
-
-          {/* Inclined Kingpin Steering Axis (Axe de pivot incliné vers l'arrière) */}
-          <line
-            x1={topKingpinX}
-            y1={topKingpinY}
-            x2={bottomKingpinX}
-            y2={bottomKingpinY}
-            stroke="#38bdf8"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-
-          {/* Kingpin extension line to top indicator */}
-          <line
-            x1={frontHubX}
-            y1={frontHubY}
-            x2={frontHubX - Math.sin(rad) * 135}
-            y2={frontHubY - Math.cos(rad) * 135}
-            stroke="#38bdf8"
-            strokeWidth="1"
-            strokeDasharray="3 3"
-          />
-
-          {/* Caster Angle Arc at the top */}
-          <path
-            d={`M ${frontHubX},95 A 100 100 0 0 0 ${frontHubX - Math.sin(rad) * 100},${frontHubY - Math.cos(rad) * 100}`}
-            fill="none"
-            stroke="#38bdf8"
-            strokeWidth="1.8"
-          />
-
-          {/* Caster Angle Readout Badge */}
-          <g transform={`translate(${frontHubX - Math.sin(rad) * 65 - 35}, 55)`}>
-            <rect
-              x="0"
-              y="0"
-              width="68"
-              height="22"
-              rx="6"
-              fill="#082f49"
-              stroke="#0284c7"
-              strokeWidth="1.2"
-            />
-            <text
-              x="34"
-              y="15"
-              textAnchor="middle"
-              fill="#38bdf8"
-              fontSize="12"
-              fontWeight="bold"
-              fontFamily="monospace"
-            >
-              {casterVal !== null ? `${casterVal.toFixed(1)}°` : '--'}
-            </text>
-          </g>
-
-          {/* Label indicating Kingpin Axis */}
-          <text
-            x={topKingpinX - 10}
-            y={topKingpinY - 6}
+            x="375"
+            y={groundY + 16}
             textAnchor="end"
-            fill="#38bdf8"
-            fontSize="8"
+            fill={isSunMode ? '#64748b' : '#64748b'}
+            fontSize="9"
             fontFamily="monospace"
-            fontWeight="bold"
           >
-            Steering Pivot Axis (Caster) &rarr;
+            Plan Sol Référence (0°)
           </text>
 
-          {/* Central Title Pill in SVG */}
-          <g transform="translate(250, 24)">
-            <rect
-              x="-110"
-              y="-12"
-              width="220"
-              height="20"
-              rx="10"
-              fill="#0b1120"
-              stroke="#1e293b"
-              strokeWidth="1"
-            />
+          {/* Sens de marche (vers l'avant / gauche) */}
+          <g transform="translate(30, 22)">
+            <line x1="50" y1="0" x2="0" y2="0" stroke="#f97316" strokeWidth="2" />
+            <polygon points="0,0 8,-3.5 8,3.5" fill="#f97316" />
             <text
-              x="0"
-              y="2"
-              textAnchor="middle"
-              fill="#38bdf8"
+              x="58"
+              y="3.5"
+              fill="#f97316"
               fontSize="9"
               fontWeight="bold"
               fontFamily="sans-serif"
             >
-              Side Profile Caster Angle (C-Hub)
+              Sens de marche
+            </text>
+          </g>
+
+          {/* ================= CHÂSSIS SIMPLIFIÉ ================= */}
+          {/* Platine inférieure (Lower Chassis Plate) */}
+          <rect
+            x="80"
+            y="152"
+            width="240"
+            height="7"
+            rx="2"
+            fill={isSunMode ? '#cbd5e1' : '#1e293b'}
+            stroke={isSunMode ? '#64748b' : '#475569'}
+            strokeWidth="1.5"
+          />
+
+          {/* Pare-chocs avant (Front Bumper Foam) */}
+          <rect
+            x="64"
+            y="149"
+            width="16"
+            height="10"
+            rx="2"
+            fill={isSunMode ? '#94a3b8' : '#334155'}
+            stroke={isSunMode ? '#64748b' : '#475569'}
+            strokeWidth="1"
+          />
+
+          {/* Support d'amortisseur avant (Front Shock Tower) */}
+          <polygon
+            points="120,152 125,102 136,102 140,152"
+            fill={isSunMode ? '#e2e8f0' : '#0f172a'}
+            stroke={isSunMode ? '#64748b' : '#475569'}
+            strokeWidth="1.5"
+          />
+
+          {/* Platine supérieure / Top deck */}
+          <line
+            x1="138"
+            y1="130"
+            x2="272"
+            y2="130"
+            stroke={isSunMode ? '#94a3b8' : '#334155'}
+            strokeWidth="2.5"
+          />
+
+          {/* Support d'amortisseur arrière (Rear Shock Tower) */}
+          <polygon
+            points="272,152 276,102 287,102 291,152"
+            fill={isSunMode ? '#e2e8f0' : '#0f172a'}
+            stroke={isSunMode ? '#64748b' : '#475569'}
+            strokeWidth="1.5"
+          />
+
+          {/* Aileron arrière stylisé (Rear Wing) */}
+          <path
+            d="M 302 130 L 316 92 L 336 90 L 320 130 Z"
+            fill={isSunMode ? '#cbd5e1' : '#1e293b'}
+            stroke={isSunMode ? '#64748b' : '#475569'}
+            strokeWidth="1.5"
+          />
+
+          {/* ================= ROUE ARRIÈRE ================= */}
+          <circle
+            cx={rearX}
+            cy={rearY}
+            r={wheelRadius}
+            fill={isSunMode ? '#334155' : '#090d16'}
+            stroke={isSunMode ? '#64748b' : '#475569'}
+            strokeWidth="1.5"
+          />
+          <circle
+            cx={rearX}
+            cy={rearY}
+            r="19"
+            fill={isSunMode ? '#e2e8f0' : '#1e293b'}
+            stroke={isSunMode ? '#94a3b8' : '#334155'}
+            strokeWidth="1"
+          />
+          <circle cx={rearX} cy={rearY} r="4.5" fill="#f59e0b" />
+
+          {/* ================= ROUE AVANT (Silhouette simplifiée) ================= */}
+          <circle
+            cx={frontX}
+            cy={frontY}
+            r={wheelRadius}
+            fill={isSunMode ? '#f1f5f9' : '#090d16'}
+            fillOpacity={isSunMode ? '0.8' : '0.4'}
+            stroke={isSunMode ? '#94a3b8' : '#475569'}
+            strokeWidth="1.5"
+            strokeDasharray="4,3"
+          />
+          <circle
+            cx={frontX}
+            cy={frontY}
+            r="19"
+            fill="none"
+            stroke={isSunMode ? '#cbd5e1' : '#334155'}
+            strokeWidth="1"
+            strokeDasharray="2,2"
+          />
+
+          {/* Triangle de suspension inférieur (Lower arm) */}
+          <line
+            x1="130"
+            y1="154"
+            x2={frontX}
+            y2="154"
+            stroke={isSunMode ? '#64748b' : '#94a3b8'}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+          />
+
+          {/* ================= ÉTRIER DE CHASSE (C-HUB) SIMPLIFIÉ ================= */}
+          {/* C-Hub block oriented along the kingpin axis */}
+          <g transform={`translate(${frontX}, ${frontY}) rotate(${casterAngle * VIS_MULT})`}>
+            {/* Simplified clean C-bracket */}
+            <path
+              d="M -7 -28 L 9 -28 L 13 -22 L 6 0 L 13 22 L 9 28 L -7 28 L -2 20 L 0 0 L -2 -20 Z"
+              fill={isSunMode ? '#ede9fe' : '#4c1d95'}
+              stroke="#a855f7"
+              strokeWidth="1.5"
+            />
+            {/* Steering knuckle / porte-fusée hub inside */}
+            <rect
+              x="-6"
+              y="-12"
+              width="12"
+              height="24"
+              rx="3"
+              fill={isSunMode ? '#ffffff' : '#0f172a'}
+              stroke="#a855f7"
+              strokeWidth="1.5"
+            />
+          </g>
+
+          {/* Axe de roue (Wheel center nut) */}
+          <circle
+            cx={frontX}
+            cy={frontY}
+            r="5"
+            fill="#f59e0b"
+            stroke="#ffffff"
+            strokeWidth="1"
+          />
+
+          {/* ================= AXE VERTICAL 90° (RÉFÉRENCE) ================= */}
+          <line
+            x1={frontX}
+            y1={frontY - 88}
+            x2={frontX}
+            y2={groundY}
+            stroke={isSunMode ? '#64748b' : '#64748b'}
+            strokeWidth="1.5"
+            strokeDasharray="4,4"
+          />
+          <text
+            x={frontX - 6}
+            y={frontY - 76}
+            textAnchor="end"
+            fill={isSunMode ? '#475569' : '#94a3b8'}
+            fontSize="8.5"
+            fontFamily="monospace"
+          >
+            90° Verticale
+          </text>
+
+          {/* ================= AXE DE CHASSE (KINGPIN AXIS) ================= */}
+          <line
+            x1={btmKingpinX}
+            y1={btmKingpinY}
+            x2={topKingpinX}
+            y2={topKingpinY}
+            stroke="#a855f7"
+            strokeWidth="2.5"
+          />
+
+          {/* Rotules supérieure et inférieure (Kingpin ball studs) */}
+          <circle
+            cx={topKingpinX}
+            cy={topKingpinY}
+            r="3.5"
+            fill="#a855f7"
+            stroke="#ffffff"
+            strokeWidth="1"
+          />
+          <circle
+            cx={btmKingpinX}
+            cy={btmKingpinY}
+            r="3.5"
+            fill="#a855f7"
+            stroke="#ffffff"
+            strokeWidth="1"
+          />
+
+          {/* Label Axe de pivot */}
+          <text
+            x={topKingpinX + 8}
+            y={topKingpinY + 4}
+            fill="#a855f7"
+            fontSize="9"
+            fontWeight="bold"
+            fontFamily="monospace"
+          >
+            Axe de Chasse
+          </text>
+
+          {/* ================= ARC DE MESURE D'ANGLE ================= */}
+          <path
+            d={`M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}`}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth="2.5"
+          />
+
+          {/* Valeur de l'angle de chasse */}
+          <text
+            x={frontX + Math.sin(angleRad) * 32 + 8}
+            y={frontY - 60}
+            fill="#f59e0b"
+            fontSize="12"
+            fontWeight="900"
+            fontFamily="monospace"
+          >
+            {formatAngleValue(casterAngle, settings?.valueFormat || 'integer', true)}
+          </text>
+
+          {/* Étiquette explicative C-Hub */}
+          <text
+            x={frontX + 16}
+            y={frontY + 28}
+            fill={isSunMode ? '#475569' : '#cbd5e1'}
+            fontSize="8.5"
+            fontWeight="bold"
+          >
+            Étrier (C-Hub)
+          </text>
+
+          {/* Badge Roue Sélectionnée & Angle (FL / FR) */}
+          <g
+            className="cursor-pointer"
+            onClick={() => onSelectWheel?.(targetPos)}
+            transform="translate(315, 18)"
+          >
+            <rect
+              x="0"
+              y="0"
+              width="68"
+              height="30"
+              rx="6"
+              fill={isSunMode ? '#ffffff' : '#0f172a'}
+              stroke="#a855f7"
+              strokeWidth="1.5"
+            />
+            <text
+              x="34"
+              y="12"
+              textAnchor="middle"
+              fill={isSunMode ? '#64748b' : '#94a3b8'}
+              fontSize="9"
+              fontWeight="bold"
+            >
+              {targetPos} • Chasse
+            </text>
+            <text
+              x="34"
+              y="24"
+              textAnchor="middle"
+              fill="#f97316"
+              fontSize="11"
+              fontWeight="bold"
+              fontFamily="monospace"
+            >
+              {formatAngleValue(casterAngle, settings?.valueFormat || 'integer', true)}
             </text>
           </g>
         </svg>
-      </div>
-
-      {/* Selected Wheel Caster Status Card */}
-      <div className="w-full mt-2">
-        <div className="bg-slate-900 border border-sky-500/40 rounded-xl p-3 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-sky-500 text-slate-950">
-                {activeSide} (Front Axle - {activeSide === 'FL' ? 'Left Side' : 'Right Side'})
-              </span>
-              <span className="text-[10px] text-sky-400 font-mono flex items-center gap-1 font-bold">
-                <Check className="w-3 h-3" /> Active Side
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono">
-              Target recommended range: [{casterRange.min}°, {casterRange.max}°]
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 self-end sm:self-auto">
-            <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase font-mono block">Caster Angle</span>
-              <span
-                className={`text-xl font-black font-mono ${
-                  casterVal !== null
-                    ? inRange
-                      ? 'text-sky-400'
-                      : 'text-amber-400'
-                    : 'text-slate-600'
-                }`}
-              >
-                {casterVal !== null ? `+${casterVal.toFixed(1)}°` : '--'}
-              </span>
-            </div>
-
-            <div className="pl-3 border-l border-slate-800 font-mono text-xs">
-              {casterVal !== null ? (
-                inRange ? (
-                  <span className="px-2 py-1 rounded bg-sky-950/80 border border-sky-500/50 text-sky-300 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> In Spec
-                  </span>
-                ) : (
-                  <span className="px-2 py-1 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> Out of Spec
-                  </span>
-                )
-              ) : (
-                <span className="text-slate-500">Not measured</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Explanatory Technical Note */}
-      <div className="w-full bg-slate-900/40 border border-slate-800/80 rounded-lg p-2 mt-2 text-[11px] text-slate-400 font-mono leading-relaxed text-center">
-        💡 <strong className="text-slate-300">Caster Angle:</strong> Backward inclination of the steering kingpin axis. Higher caster improves high-speed straight-line stability and provides faster self-centering out of corners.
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import React from 'react';
-import { AppSettings, AppLanguage, AppTheme, ValueDisplayFormat } from '../types';
+import { AppSettings, AppLanguage, AppTheme } from '../types';
 import { getTranslation } from '../utils/i18n';
-import { playTargetReachedSound, triggerTargetVibration } from '../utils/soundAndHaptics';
 import {
   Settings,
   X,
@@ -10,10 +9,6 @@ import {
   Sun,
   Binary,
   Smartphone,
-  Volume2,
-  Vibrate,
-  Sparkles,
-  Palette,
   Check,
 } from 'lucide-react';
 
@@ -23,15 +18,6 @@ interface OptionsModalProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: AppSettings) => void;
 }
-
-const COLOR_PRESETS = [
-  { label: 'Emerald Green', hex: '#10b981' },
-  { label: 'Neon Lime', hex: '#84cc16' },
-  { label: 'Electric Cyan', hex: '#06b6d4' },
-  { label: 'Racing Amber', hex: '#f59e0b' },
-  { label: 'Hot Magenta', hex: '#ec4899' },
-  { label: 'Deep Violet', hex: '#8b5cf6' },
-];
 
 export const OptionsModal: React.FC<OptionsModalProps> = ({
   isOpen,
@@ -51,7 +37,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
       <div
-        className={`w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border shadow-2xl transition-colors duration-200 ${
+        className={`w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border shadow-2xl transition-colors duration-200 ${
           settings.theme === 'light'
             ? 'bg-white border-slate-200 text-slate-900'
             : 'bg-slate-900 border-slate-800 text-slate-100'
@@ -66,10 +52,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
           }`}
         >
           <div className="flex items-center gap-2.5">
-            <div
-              className="p-2 rounded-xl text-white shadow"
-              style={{ backgroundColor: settings.targetColor }}
-            >
+            <div className="p-2 rounded-xl text-white shadow bg-emerald-500">
               <Settings className="w-5 h-5" />
             </div>
             <div>
@@ -82,7 +65,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -90,34 +73,37 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
 
         {/* Content Body */}
         <div className="p-5 space-y-6 text-xs sm:text-sm">
-          {/* 1. Language Option */}
+          {/* 1. Language Option: Exactly 3 languages ('fr', 'en', 'de') */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 font-bold text-slate-200">
               <Languages className="w-4 h-4 text-sky-400" />
               <span>{t.languageSection}</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">{t.languageDesc}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            <div className="grid grid-cols-3 gap-2 pt-1">
               {(
                 [
-                  { id: 'system', label: t.langSystem },
-                  { id: 'en', label: t.langEn },
-                  { id: 'fr', label: t.langFr },
-                  { id: 'de', label: t.langDe },
-                ] as { id: AppLanguage; label: string }[]
+                  { id: 'fr', label: t.langFr, flag: '🇫🇷' },
+                  { id: 'en', label: t.langEn, flag: '🇬🇧' },
+                  { id: 'de', label: t.langDe, flag: '🇩🇪' },
+                ] as { id: AppLanguage; label: string; flag: string }[]
               ).map((item) => (
                 <button
                   key={item.id}
                   onClick={() => update('language', item.id)}
-                  className={`px-3 py-2.5 rounded-xl border text-xs font-semibold text-center transition flex flex-col items-center justify-center gap-1 ${
+                  className={`px-3 py-3 rounded-xl border text-xs font-semibold text-center transition flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
                     settings.language === item.id
-                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold shadow-sm'
+                      ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold shadow-sm ring-1 ring-emerald-500'
                       : settings.theme === 'light'
                       ? 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
                       : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-300'
                   }`}
                 >
+                  <span className="text-xl">{item.flag}</span>
                   <span>{item.label}</span>
+                  {settings.language === item.id && (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
                 </button>
               ))}
             </div>
@@ -137,9 +123,9 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 onClick={() => update('theme', 'dark')}
-                className={`px-3.5 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition ${
+                className={`px-3.5 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition cursor-pointer ${
                   settings.theme === 'dark'
-                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 shadow-sm'
+                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 shadow-sm font-bold'
                     : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
                 }`}
               >
@@ -148,7 +134,7 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
               </button>
               <button
                 onClick={() => update('theme', 'light')}
-                className={`px-3.5 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition ${
+                className={`px-3.5 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition cursor-pointer ${
                   settings.theme === 'light'
                     ? 'border-amber-500 bg-amber-500/15 text-amber-400 shadow-sm font-bold'
                     : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
@@ -160,33 +146,69 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Value Display Format */}
+          {/* 3. Value Display Format: Integer or 0.5 Step */}
           <div className="space-y-2 pt-2 border-t border-slate-800/70">
             <div className="flex items-center gap-2 font-bold text-slate-200">
               <Binary className="w-4 h-4 text-emerald-400" />
               <span>{t.valueFormatSection}</span>
             </div>
             <p className="text-xs text-slate-400">{t.valueFormatDesc}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-              {(
-                [
-                  { id: 'decimal', label: t.formatDecimal },
-                  { id: 'integer', label: t.formatInteger },
-                  { id: 'step05', label: t.formatStep05 },
-                ] as { id: ValueDisplayFormat; label: string }[]
-              ).map((fmt) => (
-                <button
-                  key={fmt.id}
-                  onClick={() => update('valueFormat', fmt.id)}
-                  className={`px-3 py-2.5 rounded-xl border text-xs font-mono font-bold transition flex items-center justify-center gap-1.5 ${
-                    settings.valueFormat === fmt.id
-                      ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                      : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
-                  }`}
-                >
-                  <span>{fmt.label}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => update('valueFormat', 'integer')}
+                className={`p-3 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
+                  settings.valueFormat === 'integer'
+                    ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold shadow-sm'
+                    : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {settings.valueFormat === 'integer' ? (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border border-slate-600 shrink-0" />
+                  )}
+                  <div>
+                    <span className="block text-xs font-bold text-slate-200">
+                      {t.formatInteger}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      -2°, 0°, +5°
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                  1°
+                </span>
+              </button>
+
+              <button
+                onClick={() => update('valueFormat', 'step05')}
+                className={`p-3 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
+                  settings.valueFormat === 'step05'
+                    ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold shadow-sm'
+                    : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {settings.valueFormat === 'step05' ? (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border border-slate-600 shrink-0" />
+                  )}
+                  <div>
+                    <span className="block text-xs font-bold text-slate-200">
+                      {t.formatStep05}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      -2.0°, -2.5°, +1.5°
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300">
+                  0.5°
+                </span>
+              </button>
             </div>
           </div>
 
@@ -210,130 +232,6 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({
             <span className="text-[11px] font-mono text-emerald-400 block">
               {settings.keepScreenAwake ? `✓ ${t.screenWakeLockActive}` : `• ${t.screenWakeLockInactive}`}
             </span>
-          </div>
-
-          {/* 5. Sound on Target Reached */}
-          <div className="space-y-2 pt-2 border-t border-slate-800/70">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 font-bold text-slate-200">
-                <Volume2 className="w-4 h-4 text-sky-400" />
-                <span>{t.soundSection}</span>
-              </div>
-              <button
-                onClick={() => update('targetSoundEnabled', !settings.targetSoundEnabled)}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition duration-300 cursor-pointer ${
-                  settings.targetSoundEnabled ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
-                }`}
-              >
-                <div className="w-4 h-4 bg-white rounded-full shadow-md transform" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-400">{t.soundDesc}</p>
-            <div>
-              <button
-                type="button"
-                onClick={playTargetReachedSound}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 font-mono transition flex items-center gap-1.5"
-              >
-                <Volume2 className="w-3.5 h-3.5 text-sky-400" />
-                <span>{t.testSound}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 6. Vibration on Target Reached */}
-          <div className="space-y-2 pt-2 border-t border-slate-800/70">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 font-bold text-slate-200">
-                <Vibrate className="w-4 h-4 text-purple-400" />
-                <span>{t.vibrationSection}</span>
-              </div>
-              <button
-                onClick={() => update('targetVibrationEnabled', !settings.targetVibrationEnabled)}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition duration-300 cursor-pointer ${
-                  settings.targetVibrationEnabled ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
-                }`}
-              >
-                <div className="w-4 h-4 bg-white rounded-full shadow-md transform" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-400">{t.vibrationDesc}</p>
-            <div>
-              <button
-                type="button"
-                onClick={triggerTargetVibration}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 font-mono transition flex items-center gap-1.5"
-              >
-                <Vibrate className="w-3.5 h-3.5 text-purple-400" />
-                <span>{t.testVibration}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 7. Background Color Glow on Target */}
-          <div className="space-y-2 pt-2 border-t border-slate-800/70">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 font-bold text-slate-200">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>{t.bgGlowSection}</span>
-              </div>
-              <button
-                onClick={() => update('targetBgGlowEnabled', !settings.targetBgGlowEnabled)}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition duration-300 cursor-pointer ${
-                  settings.targetBgGlowEnabled ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
-                }`}
-              >
-                <div className="w-4 h-4 bg-white rounded-full shadow-md transform" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-400">{t.bgGlowDesc}</p>
-          </div>
-
-          {/* 8. Target Color Customization */}
-          <div className="space-y-2 pt-2 border-t border-slate-800/70">
-            <div className="flex items-center gap-2 font-bold text-slate-200">
-              <Palette className="w-4 h-4" style={{ color: settings.targetColor }} />
-              <span>{t.targetColorSection}</span>
-            </div>
-            <p className="text-xs text-slate-400">{t.targetColorDesc}</p>
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
-              {COLOR_PRESETS.map((preset) => (
-                <button
-                  key={preset.hex}
-                  onClick={() => update('targetColor', preset.hex)}
-                  className={`h-11 rounded-xl border flex items-center justify-center transition relative shadow-sm ${
-                    settings.targetColor.toLowerCase() === preset.hex.toLowerCase()
-                      ? 'ring-2 ring-white scale-105 border-transparent'
-                      : 'border-slate-700/80 hover:scale-102'
-                  }`}
-                  style={{ backgroundColor: preset.hex }}
-                  title={preset.label}
-                >
-                  {settings.targetColor.toLowerCase() === preset.hex.toLowerCase() && (
-                    <Check className="w-5 h-5 text-slate-950 stroke-[3]" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Hex / Color Picker input */}
-            <div className="flex items-center gap-3 pt-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-              <label className="text-xs text-slate-400 font-mono">{t.customColor}:</label>
-              <input
-                type="color"
-                value={settings.targetColor}
-                onChange={(e) => update('targetColor', e.target.value)}
-                className="w-8 h-8 rounded border border-slate-700 cursor-pointer bg-transparent"
-              />
-              <span className="font-mono text-xs font-bold text-slate-300 uppercase">
-                {settings.targetColor}
-              </span>
-              <div
-                className="w-4 h-4 rounded-full ml-auto shadow"
-                style={{ backgroundColor: settings.targetColor }}
-              />
-            </div>
           </div>
         </div>
 

@@ -18,8 +18,7 @@ import {
   Disc,
   Navigation,
   CheckCircle2,
-  ShieldAlert,
-  ArrowRight,
+  Lightbulb,
 } from 'lucide-react';
 
 interface WorkshopGuideProps {
@@ -47,8 +46,9 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
   const safeOnSelectWheel = onSelectWheel || (() => {});
 
   const [selectedTab, setSelectedTab] = useState<AngleMeasurementType>(activeMeasurement);
-  const lang = settings?.language || 'system';
+  const lang = settings?.language || 'fr';
   const t = getTranslation(lang);
+  const isSunMode = settings?.theme === 'light';
 
   // Synchronize if parent changes active measurement
   React.useEffect(() => {
@@ -63,9 +63,19 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 text-slate-200 shadow-xl overflow-hidden">
+    <div
+      className={`border rounded-2xl p-4 sm:p-5 shadow-xl overflow-hidden transition-all duration-300 ${
+        isSunMode
+          ? 'bg-white border-slate-300 text-slate-800 shadow-sm'
+          : 'bg-slate-900/90 border-slate-800 text-slate-200'
+      }`}
+    >
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 border-b pb-3 mb-4 ${
+          isSunMode ? 'border-slate-200' : 'border-slate-800'
+        }`}
+      >
         <div className="flex items-center gap-2.5">
           <div
             className="p-2 rounded-xl text-white shadow"
@@ -74,20 +84,32 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             <Wrench className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-extrabold text-base sm:text-lg tracking-tight text-white flex items-center gap-2">
+            <h2
+              className={`font-extrabold text-base sm:text-lg tracking-tight flex items-center gap-2 ${
+                isSunMode ? 'text-slate-900' : 'text-white'
+              }`}
+            >
               <span>{t.workshopGuideTitle}</span>
             </h2>
-            <p className="text-xs text-slate-400">{t.workshopGuideSubtitle}</p>
+            <p className={`text-xs ${isSunMode ? 'text-slate-500' : 'text-slate-400'}`}>
+              {t.workshopGuideSubtitle}
+            </p>
           </div>
         </div>
 
-        {/* Tab Switcher: CAMBER (Front View) | TOE (Top View) | CASTER (Side View) */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-mono font-bold flex-wrap gap-1">
+        {/* Tab Switcher: CAMBER | TOE | CASTER */}
+        <div
+          className={`flex items-center p-1 rounded-xl border text-xs font-mono font-bold flex-wrap gap-1 ${
+            isSunMode ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'
+          }`}
+        >
           <button
             onClick={() => handleTabChange('camber')}
-            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
               selectedTab === 'camber'
                 ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                : isSunMode
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -96,9 +118,11 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
           </button>
           <button
             onClick={() => handleTabChange('toe')}
-            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
               selectedTab === 'toe'
                 ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                : isSunMode
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -107,9 +131,11 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
           </button>
           <button
             onClick={() => handleTabChange('caster')}
-            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
               selectedTab === 'caster'
                 ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                : isSunMode
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -131,95 +157,64 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
               </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Smartphone Inclinometer Dial • 0.5° Resolution
+              Vue de Face • Train Avant / Arrière
             </span>
           </div>
 
-          {/* Unified Front View Schematic from Chassis Schematic */}
-          <div className="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3">
-            <CarFrontView
-              vehicle={safeVehicle}
-              activeSetup={safeActiveSetup}
-              selectedWheel={safeSelectedWheel}
-              onSelectWheel={safeOnSelectWheel}
-            />
-          </div>
+          {/* Front View Interactive Schematic */}
+          <CarFrontView
+            vehicle={safeVehicle}
+            activeSetup={safeActiveSetup}
+            selectedWheel={safeSelectedWheel}
+            onSelectWheel={safeOnSelectWheel}
+          />
 
-          {/* Alignment Instruction Bar */}
-          <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300 shrink-0">
-              <Smartphone className="w-5 h-5" />
-            </div>
-            <div className="text-xs text-slate-300">
-              <strong className="text-emerald-300 font-bold block mb-0.5">
-                Front Axle / Rear Axle Wheel Rim Placement
-              </strong>
-              <span>
-                Place the long flat vertical edge of your smartphone directly against the wheel rim
-                flange. Keep smartphone perpendicular to the ground.
-              </span>
-            </div>
-          </div>
-
-          {/* 3 Steps matching the Unified Front View */}
+          {/* 3 Step Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Step 1 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-emerald-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    1
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.camberStep1Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">
-                      {t.camberStep1Desc}
-                    </p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center">
+                  1
+                </span>
+                <span className="font-bold text-xs text-slate-200">{t.camberStep1Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Bench Surface Zero Level
-              </span>
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.camberStep1Desc}</p>
             </div>
 
-            {/* Step 2 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-emerald-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    2
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.camberStep2Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">
-                      {t.camberStep2Desc}
-                    </p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 text-xs font-black flex items-center justify-center">
+                  2
+                </span>
+                <span className="font-bold text-xs text-emerald-300">{t.camberStep2Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Outer Rim Flange Touch
-              </span>
+              <p className="text-xs text-slate-300 leading-relaxed pl-7">{t.camberStep2Desc}</p>
             </div>
 
-            {/* Step 3 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-emerald-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    3
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.camberStep3Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">
-                      {t.camberStep3Desc}
-                    </p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center">
+                  3
+                </span>
+                <span className="font-bold text-xs text-slate-200">{t.camberStep3Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Top Inwards = Negative (-)
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.camberStep3Desc}</p>
+            </div>
+          </div>
+
+          {/* Setup Remark / Tip Card */}
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex items-start gap-3 text-xs">
+            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-slate-200 block mb-0.5">
+                {t.camberRemark}
+              </span>
+              <span className="text-slate-400 leading-relaxed">
+                {lang === 'en'
+                  ? 'Recommended starting camber: -2.0° on front and -2.0° on rear for balanced tire wear.'
+                  : lang === 'de'
+                  ? 'Empfohlener Grundwert: -2.0° vorne und -2.0° hinten für gleichmäßigen Reifenverschleiß.'
+                  : 'Valeur de base recommandée : -2.0° à l’avant et -2.0° à l’arrière pour une usure uniforme du pneu.'}
               </span>
             </div>
           </div>
@@ -232,97 +227,71 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
           {/* Header Banner */}
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <Disc className="w-4 h-4 text-emerald-400" />
-              <span className="font-mono font-black text-sm tracking-wider uppercase text-emerald-400">
+              <Disc className="w-4 h-4 text-sky-400" />
+              <span className="font-mono font-black text-sm tracking-wider uppercase text-sky-400">
                 {t.topViewToe}
               </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Vertical Chassis Placement • Relative Tare
+              Vue de Dessus • 4 Roues Châssis
             </span>
           </div>
 
-          {/* Unified Top View Schematic from Chassis Schematic */}
-          <div className="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3">
-            <CarTopView
-              vehicle={safeVehicle}
-              activeSetup={safeActiveSetup}
-              selectedWheel={safeSelectedWheel}
-              onSelectWheel={safeOnSelectWheel}
-              activeMeasurement="toe"
-            />
-          </div>
+          {/* Top View Interactive Schematic */}
+          <CarTopView
+            vehicle={safeVehicle}
+            activeSetup={safeActiveSetup}
+            selectedWheel={safeSelectedWheel}
+            onSelectWheel={safeOnSelectWheel}
+            activeMeasurement="toe"
+          />
 
-          {/* Alignment Instruction Bar */}
-          <div className="bg-sky-950/30 border border-sky-500/30 rounded-xl p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-sky-500/20 text-sky-300 shrink-0">
-              <Smartphone className="w-5 h-5" />
-            </div>
-            <div className="text-xs text-slate-300">
-              <strong className="text-sky-300 font-bold block mb-0.5">
-                Chassis Vertical Placement Protocol
-              </strong>
-              <span>
-                Position chassis vertically perpendicular to setup board. Rest smartphone edge against
-                the carbon chassis backbone for Tare (0.0°), then place against wheel rim to measure
-                toe angle.
-              </span>
-            </div>
-          </div>
-
-          {/* 3 Steps matching the Unified Top View */}
+          {/* 3 Step Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Step 1 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-sky-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    1
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.toeStep1Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">{t.toeStep1Desc}</p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 text-xs font-bold flex items-center justify-center">
+                  1
+                </span>
+                <span className="font-bold text-xs text-slate-200">{t.toeStep1Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Vertical 90° Chassis Stand
-              </span>
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.toeStep1Desc}</p>
             </div>
 
-            {/* Step 2 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-sky-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    2
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.toeStep2Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">{t.toeStep2Desc}</p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-950/20 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-500 text-slate-950 text-xs font-black flex items-center justify-center">
+                  2
+                </span>
+                <span className="font-bold text-xs text-sky-300">{t.toeStep2Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Chassis Backbone Zero Reference
-              </span>
+              <p className="text-xs text-slate-300 leading-relaxed pl-7">{t.toeStep2Desc}</p>
             </div>
 
-            {/* Step 3 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-sky-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    3
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.toeStep3Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">{t.toeStep3Desc}</p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 text-xs font-bold flex items-center justify-center">
+                  3
+                </span>
+                <span className="font-bold text-xs text-slate-200">{t.toeStep3Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                (+) Toe-in / (-) Toe-out
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.toeStep3Desc}</p>
+            </div>
+          </div>
+
+          {/* Setup Remark / Tip Card */}
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex items-start gap-3 text-xs">
+            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-slate-200 block mb-0.5">
+                {t.toeRemark}
+              </span>
+              <span className="text-slate-400 leading-relaxed">
+                {lang === 'en'
+                  ? 'Front axle: 0° to -1° (toe-out) for responsiveness. Rear axle: +2° to +3° (toe-in) for rear grip.'
+                  : lang === 'de'
+                  ? 'Vorderachse: 0° bis -1° (Nachspur) für Agilität. Hinterachse: +2° bis +3° (Vorspur) für Traktion.'
+                  : 'Train avant : 0° à -1° (ouverture) pour la vivacité. Train arrière : +2° à +3° (pincement) pour la motricité.'}
               </span>
             </div>
           </div>
@@ -341,95 +310,65 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
               </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Front Wheels Removed • Bare Knuckle Kingpin
+              Vue Latérale • Pivot de Fusée Avant
             </span>
           </div>
 
-          {/* Unified Side View Schematic from Chassis Schematic */}
-          <div className="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3">
-            <CarSideView
-              vehicle={safeVehicle}
-              activeSetup={safeActiveSetup}
-              selectedWheel={safeSelectedWheel}
-              onSelectWheel={safeOnSelectWheel}
-            />
-          </div>
+          {/* Side View Interactive Schematic */}
+          <CarSideView
+            vehicle={safeVehicle}
+            activeSetup={safeActiveSetup}
+            selectedWheel={safeSelectedWheel}
+            onSelectWheel={safeOnSelectWheel}
+            settings={settings}
+          />
 
-          {/* Alignment Instruction Bar */}
-          <div className="bg-purple-950/30 border border-purple-500/30 rounded-xl p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/20 text-purple-300 shrink-0">
-              <Smartphone className="w-5 h-5" />
-            </div>
-            <div className="text-xs text-slate-300">
-              <strong className="text-purple-300 font-bold block mb-0.5">
-                Bare Steering Knuckle Kingpin Inclination
-              </strong>
-              <span>
-                Remove front wheel. Rest chassis flat on the setup board. Place smartphone edge along
-                the kingpin pivot line of the steering block. Backward tilt = Positive (+) Caster.
-              </span>
-            </div>
-          </div>
-
-          {/* 3 Steps matching the Unified Side View */}
+          {/* 3 Step Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Step 1 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-purple-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    1
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.casterStep1Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">
-                      {t.casterStep1Desc}
-                    </p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold flex items-center justify-center">
+                  1
+                </span>
+                <span className="font-bold text-xs text-slate-200">{t.casterStep1Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Dismount Front Wheels
-              </span>
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.casterStep1Desc}</p>
             </div>
 
-            {/* Step 2 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-purple-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    2
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.casterStep2Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">
-                      {t.casterStep2Desc}
-                    </p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-purple-500/30 bg-purple-950/20 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-purple-500 text-slate-950 text-xs font-black flex items-center justify-center">
+                  2
+                </span>
+                <span className="font-bold text-xs text-purple-300">{t.casterStep2Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Bench Reference 0.0° Level
-              </span>
+              <p className="text-xs text-slate-300 leading-relaxed pl-7">{t.casterStep2Desc}</p>
             </div>
 
-            {/* Step 3 */}
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start gap-2.5 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 text-purple-400 font-bold font-mono text-xs flex items-center justify-center shrink-0 border border-slate-700">
-                    3
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xs text-white">{t.casterStep3Title}</h4>
-                    <p className="text-xs text-slate-300 leading-snug mt-1">
-                      {t.casterStep3Desc}
-                    </p>
-                  </div>
-                </div>
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold flex items-center justify-center">
+                  3
+                </span>
+                <span className="font-bold text-xs text-slate-200">{t.casterStep3Title}</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-800/80 block">
-                Kingpin Axis Inclinometer
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">{t.casterStep3Desc}</p>
+            </div>
+          </div>
+
+          {/* Setup Remark / Tip Card */}
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex items-start gap-3 text-xs">
+            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-slate-200 block mb-0.5">
+                {t.casterRemark}
+              </span>
+              <span className="text-slate-400 leading-relaxed">
+                {lang === 'en'
+                  ? 'Standard touring car: +4° to +6°. Large open tracks or high speed sweepers: +6° to +8°.'
+                  : lang === 'de'
+                  ? 'Standard Touring-Car: +4° bis +6°. Schnelle Kurven oder Drift: +6° bis +8°.'
+                  : 'Touring standard : +4° à +6°. Circuits très rapides ou grandes courbes : +6° à +8°.'}
               </span>
             </div>
           </div>

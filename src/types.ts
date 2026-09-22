@@ -83,9 +83,9 @@ export interface SensorCalibration {
 
 export type ThemeMode = 'dark_circuit' | 'sun_contrast' | 'light_pit';
 
-export type AppLanguage = 'system' | 'en' | 'fr' | 'de';
+export type AppLanguage = 'fr' | 'en' | 'de';
 export type AppTheme = 'dark' | 'light';
-export type ValueDisplayFormat = 'decimal' | 'integer' | 'step05';
+export type ValueDisplayFormat = 'integer' | 'step05';
 
 export interface AppSettings {
   language: AppLanguage;
@@ -97,7 +97,7 @@ export interface AppSettings {
   targetVibrationEnabled: boolean;
   targetBgGlowEnabled: boolean;
   targetBackgroundGlow?: boolean;
-  targetColor: string; // e.g. '#10b981'
+  targetColor: string; // e.g. '#f97316'
 }
 
 export interface CloudSyncState {

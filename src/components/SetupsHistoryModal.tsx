@@ -108,7 +108,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
           <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+            <FileSpreadsheet className="w-5 h-5 text-orange-400" />
             <div>
               <h2 className="text-base font-bold text-white">Setup Sheets</h2>
               <p className="text-xs text-slate-400">Active Vehicle : {vehicle.name}</p>
@@ -131,7 +131,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
             </span>
             <button
               onClick={() => setIsCreating(!isCreating)}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition shadow"
+              className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition shadow"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Setup Sheet</span>
@@ -140,8 +140,8 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
 
           {/* New Setup Form */}
           {isCreating && (
-            <div className="bg-slate-950 border border-emerald-500/40 rounded-xl p-3.5 space-y-3 animate-in fade-in">
-              <h3 className="text-xs font-bold uppercase text-emerald-400">
+            <div className="bg-slate-950 border border-orange-500/40 rounded-xl p-3.5 space-y-3 animate-in fade-in">
+              <h3 className="text-xs font-bold uppercase text-orange-400">
                 Create a new setup sheet
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
@@ -152,7 +152,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                     placeholder="e.g., Heat 1 - Wet Track"
                     value={newSetupName}
                     onChange={(e) => setNewSetupName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -162,7 +162,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                     placeholder="e.g., High-grip carpet"
                     value={newTrackCondition}
                     onChange={(e) => setNewTrackCondition(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -172,7 +172,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                     placeholder="e.g., Sorex 28JB additivated / Foam 40 shore"
                     value={newTires}
                     onChange={(e) => setNewTires(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -185,7 +185,7 @@ export const SetupsHistoryModal: React.FC<SetupsHistoryModalProps> = ({
                 </button>
                 <button
                   onClick={handleCreateSetup}
-                  className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg shadow"
+                  className="px-4 py-1.5 bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs rounded-lg shadow"
                 >
                   Save and Activate
                 </button>
