@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rc-align-v11';
+const CACHE_NAME = 'rc-align-v12';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
