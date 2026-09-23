@@ -1,5 +1,5 @@
 import React from 'react';
-import { WheelPosition, Vehicle, VehicleSetupSheet, AngleMeasurementType } from '../types';
+import { WheelPosition, Vehicle, VehicleSetupSheet, AngleMeasurementType, AppSettings } from '../types';
 import { formatAngleValue } from '../utils/i18n';
 
 export interface CarTopViewProps {
@@ -8,6 +8,7 @@ export interface CarTopViewProps {
   selectedWheel?: WheelPosition;
   onSelectWheel?: (wheel: WheelPosition) => void;
   activeMeasurement?: AngleMeasurementType;
+  settings?: AppSettings;
 }
 
 export function detectVehicleArchetype(vehicle?: Vehicle): string {
@@ -37,6 +38,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
   selectedWheel = 'FL',
   onSelectWheel,
   activeMeasurement = 'toe',
+  settings,
 }) => {
   const archetypeKey = detectVehicleArchetype(vehicle);
   const archetype = ARCHETYPE_META[archetypeKey] || ARCHETYPE_META.touring;
@@ -216,7 +218,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
             <rect x="0" y="0" width="46" height="24" rx="6" fill="#0f172a" stroke={selectedWheel === 'FL' ? '#f97316' : '#334155'} strokeWidth="1.5" />
             <text x="23" y="11" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="bold">FL</text>
             <text x="23" y="20" textAnchor="middle" fill={selectedWheel === 'FL' ? '#fb923c' : '#f1f5f9'} fontSize="9" fontWeight="bold">
-              {formatAngleValue(flToe, 'integer', true)}
+              {formatAngleValue(flToe, settings?.valueFormat || 'step05', true)}
             </text>
           </g>
 
@@ -263,7 +265,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
             <rect x="0" y="0" width="46" height="24" rx="6" fill="#0f172a" stroke={selectedWheel === 'FR' ? '#f97316' : '#334155'} strokeWidth="1.5" />
             <text x="23" y="11" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="bold">FR</text>
             <text x="23" y="20" textAnchor="middle" fill={selectedWheel === 'FR' ? '#fb923c' : '#f1f5f9'} fontSize="9" fontWeight="bold">
-              {formatAngleValue(frToe, 'integer', true)}
+              {formatAngleValue(frToe, settings?.valueFormat || 'step05', true)}
             </text>
           </g>
 
@@ -299,7 +301,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
             <rect x="0" y="0" width="46" height="24" rx="6" fill="#0f172a" stroke={selectedWheel === 'RL' ? '#f97316' : '#334155'} strokeWidth="1.5" />
             <text x="23" y="11" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="bold">RL</text>
             <text x="23" y="20" textAnchor="middle" fill={selectedWheel === 'RL' ? '#fb923c' : '#f1f5f9'} fontSize="9" fontWeight="bold">
-              {formatAngleValue(rlToe, 'integer', true)}
+              {formatAngleValue(rlToe, settings?.valueFormat || 'step05', true)}
             </text>
           </g>
 
@@ -335,7 +337,7 @@ export const CarTopView: React.FC<CarTopViewProps> = ({
             <rect x="0" y="0" width="46" height="24" rx="6" fill="#0f172a" stroke={selectedWheel === 'RR' ? '#f97316' : '#334155'} strokeWidth="1.5" />
             <text x="23" y="11" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="bold">RR</text>
             <text x="23" y="20" textAnchor="middle" fill={selectedWheel === 'RR' ? '#fb923c' : '#f1f5f9'} fontSize="9" fontWeight="bold">
-              {formatAngleValue(rrToe, 'integer', true)}
+              {formatAngleValue(rrToe, settings?.valueFormat || 'step05', true)}
             </text>
           </g>
         </svg>

@@ -167,6 +167,7 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             activeSetup={safeActiveSetup}
             selectedWheel={safeSelectedWheel}
             onSelectWheel={safeOnSelectWheel}
+            settings={settings}
           />
 
           {/* 3 Step Cards */}
@@ -244,6 +245,7 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             selectedWheel={safeSelectedWheel}
             onSelectWheel={safeOnSelectWheel}
             activeMeasurement="toe"
+            settings={settings}
           />
 
           {/* 3 Step Cards */}

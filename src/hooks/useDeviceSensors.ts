@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AngleMeasurementType, SensorCalibration, WheelPosition } from '../types';
+import { AngleMeasurementType, SensorCalibration, WheelPosition, ValueDisplayFormat } from '../types';
 import { playHoldSound, playTareSound } from '../utils/audioHaptics';
 import { lockOrientationPortrait, lockOrientationWithFullscreen } from '../utils/orientationLock';
 
@@ -38,7 +38,8 @@ function computeCircularMean(anglesInDegrees: number[]): number {
 
 export function useDeviceSensors(
   activeMeasurement: AngleMeasurementType,
-  selectedWheel: WheelPosition = 'FL'
+  selectedWheel: WheelPosition = 'FL',
+  valueFormat: ValueDisplayFormat = 'step05'
 ) {
   const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
   const [hasRealSensors, setHasRealSensors] = useState<boolean>(false);
@@ -522,12 +523,24 @@ export function useDeviceSensors(
     liveAngle = -liveAngle;
   }
 
-  // Strictly integer precision: whole numbers only, no decimals, no 0.5 step
-  let rounded = Math.round(liveAngle);
+  // Apply formatting quantization based on user preference: 0.5° increments or 1° integer
+  let rounded: number;
+  if (valueFormat === 'step05') {
+    rounded = Math.round(liveAngle * 2) / 2;
+  } else {
+    rounded = Math.round(liveAngle);
+  }
   if (Object.is(rounded, -0)) {
     rounded = 0;
   }
-  const displayAngle = isHeld && heldAngle !== null ? Math.round(heldAngle) : rounded;
+
+  let finalHeldAngle: number | null = null;
+  if (heldAngle !== null) {
+    finalHeldAngle = valueFormat === 'step05' ? Math.round(heldAngle * 2) / 2 : Math.round(heldAngle);
+    if (Object.is(finalHeldAngle, -0)) finalHeldAngle = 0;
+  }
+
+  const displayAngle = isHeld && finalHeldAngle !== null ? finalHeldAngle : rounded;
 
   return {
     permissionState,

@@ -34,7 +34,7 @@ import {
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'fr',
   theme: 'dark',
-  valueFormat: 'integer',
+  valueFormat: 'step05',
   keepScreenAwake: false,
   screenKeepAwake: false,
   targetSoundEnabled: false,
@@ -102,7 +102,7 @@ export default function App() {
     handleLockOrientationWithFullscreen,
     isSignReversed,
     toggleSignReversed,
-  } = useDeviceSensors(activeMeasurement, selectedWheel);
+  } = useDeviceSensors(activeMeasurement, selectedWheel, settings.valueFormat);
 
   // Save settings
   useEffect(() => {

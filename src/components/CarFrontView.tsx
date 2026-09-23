@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WheelPosition, Vehicle, VehicleSetupSheet } from '../types';
+import { WheelPosition, Vehicle, VehicleSetupSheet, AppSettings } from '../types';
 import { formatAngleValue } from '../utils/i18n';
 import { detectVehicleArchetype, ARCHETYPE_META } from './CarTopView';
 
@@ -8,6 +8,7 @@ export interface CarFrontViewProps {
   activeSetup?: VehicleSetupSheet;
   selectedWheel?: WheelPosition;
   onSelectWheel?: (wheel: WheelPosition) => void;
+  settings?: AppSettings;
 }
 
 export const CarFrontView: React.FC<CarFrontViewProps> = ({
@@ -15,6 +16,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
   activeSetup,
   selectedWheel = 'FL',
   onSelectWheel,
+  settings,
 }) => {
   const [activeAxle, setActiveAxle] = useState<'front' | 'rear'>(
     selectedWheel === 'RL' || selectedWheel === 'RR' ? 'rear' : 'front'
@@ -162,7 +164,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
             <rect x="0" y="0" width="56" height="28" rx="6" fill="#0f172a" stroke={selectedWheel === leftPos ? '#f97316' : '#334155'} strokeWidth="1.5" />
             <text x="28" y="12" textAnchor="middle" fill="#94a3b8" fontSize="9" fontWeight="bold">{leftPos}</text>
             <text x="28" y="23" textAnchor="middle" fill={selectedWheel === leftPos ? '#fb923c' : '#f1f5f9'} fontSize="11" fontWeight="bold">
-              {formatAngleValue(leftCamber, 'integer', true)}
+              {formatAngleValue(leftCamber, settings?.valueFormat || 'step05', true)}
             </text>
           </g>
 
@@ -200,7 +202,7 @@ export const CarFrontView: React.FC<CarFrontViewProps> = ({
             <rect x="0" y="0" width="56" height="28" rx="6" fill="#0f172a" stroke={selectedWheel === rightPos ? '#f97316' : '#334155'} strokeWidth="1.5" />
             <text x="28" y="12" textAnchor="middle" fill="#94a3b8" fontSize="9" fontWeight="bold">{rightPos}</text>
             <text x="28" y="23" textAnchor="middle" fill={selectedWheel === rightPos ? '#fb923c' : '#f1f5f9'} fontSize="11" fontWeight="bold">
-              {formatAngleValue(rightCamber, 'integer', true)}
+              {formatAngleValue(rightCamber, settings?.valueFormat || 'step05', true)}
             </text>
           </g>
         </svg>

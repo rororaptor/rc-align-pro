@@ -260,8 +260,8 @@ export const MeasureView: React.FC<MeasureViewProps> = ({
 
       {/* Main Inclinometer Needle Dial & Digital Readout */}
       <div className="flex flex-col items-center justify-center flex-1 my-auto text-center relative py-2">
-        {/* Wheel and Measurement Badge */}
-        <div className="flex items-center gap-2 mb-2">
+        {/* Wheel and Status Badges */}
+        <div className="flex items-center gap-2 mb-2 flex-wrap justify-center">
           <span className="text-xs font-sans font-bold uppercase tracking-wider text-orange-400 bg-orange-950/60 px-3 py-1 rounded-full border border-orange-500/30">
             {wheelLabels[selectedWheel]}
           </span>
