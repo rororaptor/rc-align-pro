@@ -312,10 +312,37 @@ export function useDeviceSensors(
         setPermissionState('granted');
       }
 
-      // Roll: tilt left/right (gamma, degrees -90..90)
-      // Pitch: tilt front/back (beta, degrees -180..180)
-      // Yaw: heading / compass (alpha, degrees 0..360)
-      const rawRoll = e.gamma ?? 0;
+      // 3D gravity vector components derived from W3C intrinsic Tait-Bryan angles (Z-X'-Y'')
+      // gx: lateral screen axis (left/right)
+      // gy: longitudinal screen axis (bottom/top)
+      // gz: perpendicular to screen (back/front)
+      const rad = Math.PI / 180;
+      const betaRad = (e.beta ?? 0) * rad;
+      const gammaRad = (e.gamma ?? 0) * rad;
+
+      const gx = -Math.sin(gammaRad) * Math.cos(betaRad);
+      const gy = -Math.sin(betaRad);
+      const gz = -Math.cos(gammaRad) * Math.cos(betaRad);
+
+      // True screen-plane tilt (inclinometer roll):
+      // When the phone is placed on its edge (standing upright in portrait or on its side against a wheel):
+      // Math.atan2(gx, -gy) calculates the EXACT physical angle of tilt in the screen plane relative to gravity.
+      // This completely solves the Euler gimbal lock singularity where beta ≈ 80°-90° caused gamma to jump to 60° for a 10° tilt!
+      const inPlaneMag = Math.hypot(gx, gy);
+      let calculatedRoll = 0;
+
+      if (inPlaneMag > 0.25) {
+        // Device is resting on its edge against the wheel rim or setup plate:
+        const angleInPlane = Math.atan2(gx, -gy) * (180 / Math.PI);
+        // Normalize to nearest 90-degree quadrant so both portrait (0°) and landscape (±90°) edges work accurately:
+        const quadrant = Math.round(angleInPlane / 90) * 90;
+        calculatedRoll = angleInPlane - quadrant;
+      } else {
+        // Device is lying flat face-up on a horizontal surface:
+        calculatedRoll = e.gamma ?? 0;
+      }
+
+      const rawRoll = calculatedRoll;
       const rawPitch = e.beta ?? 0;
       const rawYaw = e.alpha ?? 0;
 
