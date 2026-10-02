@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Layers,
+  Activity,
 } from 'lucide-react';
 
 interface MeasureViewProps {

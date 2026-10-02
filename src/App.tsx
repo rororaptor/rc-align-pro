@@ -84,6 +84,26 @@ export default function App() {
     updateVehicles,
   } = useVehicles();
 
+  const DEFAULT_FALLBACK_WHEELS = {
+    FL: { camber: -2.0, toe: -0.5, caster: 4.5, measuredAt: null },
+    FR: { camber: -2.0, toe: -0.5, caster: 4.5, measuredAt: null },
+    RL: { camber: -2.2, toe: 3.0, caster: null, measuredAt: null },
+    RR: { camber: -2.2, toe: 3.0, caster: null, measuredAt: null },
+  };
+
+  // Active setup sheet with robust fallback
+  const activeSetup: VehicleSetupSheet =
+    activeVehicle?.setups?.find((s) => s.id === activeVehicle.activeSetupId) ||
+    activeVehicle?.setups?.[0] || {
+      id: 'setup-fallback-1',
+      name: 'Baseline Setup',
+      createdAt: new Date().toISOString(),
+      wheels: DEFAULT_FALLBACK_WHEELS,
+    };
+
+  // Current wheel saved value for active measurement
+  const currentSavedAngle = activeSetup?.wheels?.[selectedWheel]?.[activeMeasurement] ?? null;
+
   // Sensors & Inclinometer hook
   const {
     hasRealSensors,
@@ -102,7 +122,7 @@ export default function App() {
     handleLockOrientationWithFullscreen,
     isSignReversed,
     toggleSignReversed,
-  } = useDeviceSensors(activeMeasurement, selectedWheel, settings.valueFormat);
+  } = useDeviceSensors(activeMeasurement, selectedWheel, settings.valueFormat, currentSavedAngle);
 
   // Save settings
   useEffect(() => {
@@ -137,23 +157,6 @@ export default function App() {
       }
     }
   };
-
-  const DEFAULT_FALLBACK_WHEELS = {
-    FL: { camber: -2.0, toe: -0.5, caster: 4.5, measuredAt: null },
-    FR: { camber: -2.0, toe: -0.5, caster: 4.5, measuredAt: null },
-    RL: { camber: -2.2, toe: 3.0, caster: null, measuredAt: null },
-    RR: { camber: -2.2, toe: 3.0, caster: null, measuredAt: null },
-  };
-
-  // Active setup sheet with robust fallback
-  const activeSetup: VehicleSetupSheet =
-    activeVehicle?.setups?.find((s) => s.id === activeVehicle.activeSetupId) ||
-    activeVehicle?.setups?.[0] || {
-      id: 'setup-fallback-1',
-      name: 'Baseline Setup',
-      createdAt: new Date().toISOString(),
-      wheels: DEFAULT_FALLBACK_WHEELS,
-    };
 
   const t = getTranslation(settings.language);
 

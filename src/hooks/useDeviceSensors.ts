@@ -39,35 +39,55 @@ function computeCircularMean(anglesInDegrees: number[]): number {
 export function useDeviceSensors(
   activeMeasurement: AngleMeasurementType,
   selectedWheel: WheelPosition = 'FL',
-  valueFormat: ValueDisplayFormat = 'step05'
+  valueFormat: ValueDisplayFormat = 'step05',
+  _currentSavedAngle: number | null = null
 ) {
   const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
   const [hasRealSensors, setHasRealSensors] = useState<boolean>(false);
   const [isOrientationLocked, setIsOrientationLocked] = useState<boolean>(false);
 
-  // Calibration offsets (Tare)
-  const [calibration, setCalibration] = useState<SensorCalibration>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('rc_sensor_calibration');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // ignore
-        }
-      }
-    }
-    return {
-      zeroPitch: 0,
-      zeroRoll: 0,
-      zeroYaw: 0,
-      referenceChassisYaw: null,
-      referenceChassisPitch: null,
-      lastCalibratedAt: null,
-    };
-  });
+  // Calibration offsets (Tare) - Systematically zeroed on application launch as requested
+  const [calibration, setCalibration] = useState<SensorCalibration>(() => ({
+    zeroPitch: 0,
+    zeroRoll: 0,
+    zeroYaw: 0,
+    referenceChassisYaw: null,
+    referenceChassisPitch: null,
+    lastCalibratedAt: null,
+  }));
 
-  // Raw and smoothed sensor values
+  // Smoothing filters (Exponential Moving Average)
+  const smoothedRoll = useRef<number>(0);
+  const smoothedPitch = useRef<number>(0);
+  const smoothedYaw = useRef<number>(0);
+  const hasReceivedAnySensor = useRef<boolean>(false);
+  const hasAutoZeroedOnLaunch = useRef<boolean>(false);
+
+  // Synchronous high-frequency sensor refs & history for instantaneous zero calibration
+  const latestRollRef = useRef<number>(0);
+  const latestPitchRef = useRef<number>(0);
+  const latestYawRef = useRef<number>(0);
+  const calibrationRef = useRef<SensorCalibration>(calibration);
+
+  useEffect(() => {
+    calibrationRef.current = calibration;
+  }, [calibration]);
+
+  // Ensure all sensors, filters, and tare calibrations are set to 0 when opening the application
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('rc_sensor_calibration');
+      localStorage.removeItem('rc_accelerometer_active');
+    }
+    smoothedRoll.current = 0;
+    smoothedPitch.current = 0;
+    smoothedYaw.current = 0;
+    latestRollRef.current = 0;
+    latestPitchRef.current = 0;
+    latestYawRef.current = 0;
+  }, []);
+
+  // Raw and smoothed sensor values - All initialize strictly to 0
   const [sensorValues, setSensorValues] = useState<SensorData>({
     pitch: 0,
     roll: 0,
@@ -116,26 +136,6 @@ export function useDeviceSensors(
       return next;
     });
   }, [activeMeasurement]);
-
-  // Smoothing filters (Exponential Moving Average)
-  const smoothedLevelTilt = useRef<number>(0);
-  const smoothedPitch = useRef<number>(0);
-  const smoothedCompass = useRef<number>(0);
-  const hasReceivedAnySensor = useRef<boolean>(false);
-  const hasReceivedAbsolute = useRef<boolean>(false);
-  const hasInitializedCompass = useRef<boolean>(false);
-  const hasInitializedRollPitch = useRef<boolean>(false);
-
-  // Synchronous high-frequency sensor refs & history for instantaneous zero calibration
-  const latestCompassRef = useRef<number>(0);
-  const latestRollRef = useRef<number>(0);
-  const latestPitchRef = useRef<number>(0);
-  const headingHistoryRef = useRef<number[]>([]);
-  const calibrationRef = useRef<SensorCalibration>(calibration);
-
-  useEffect(() => {
-    calibrationRef.current = calibration;
-  }, [calibration]);
 
   // Request permission (iOS 13+ and Chromium) - Accelerometer deactivated, only DeviceOrientation
   const requestSensorPermission = useCallback(async () => {
@@ -200,14 +200,13 @@ export function useDeviceSensors(
   // Tare / Zero current reading for active angle:
   const calibrateZero = useCallback(() => {
     playTareSound();
+
     const currentRoll = latestRollRef.current;
     const currentPitch = latestPitchRef.current;
-    smoothedLevelTilt.current = currentRoll;
+    smoothedRoll.current = currentRoll;
     smoothedPitch.current = currentPitch;
 
     if (activeMeasurement === 'toe') {
-      // Toe measured by spirit level with chassis oriented vertically relative to workbench:
-      // Tare saves the vertical chassis reference roll angle
       const updated: SensorCalibration = {
         ...calibrationRef.current,
         referenceChassisYaw: currentRoll,
@@ -244,7 +243,7 @@ export function useDeviceSensors(
   const setChassisToeReference = useCallback(() => {
     playTareSound();
     const currentRoll = latestRollRef.current;
-    smoothedLevelTilt.current = currentRoll;
+    smoothedRoll.current = currentRoll;
 
     const updated: SensorCalibration = {
       ...calibrationRef.current,
@@ -299,15 +298,13 @@ export function useDeviceSensors(
     });
   }, []);
 
-  // Setup Sensors:
-  // Pure Orientation & Gyroscope Sensors (ACCELEROMETER DEACTIVATED for camber, toe, and caster)
+  // Setup Sensors: Pure Orientation & Gyroscope Sensors (ACCELEROMETER DEACTIVATED)
+  // Automatically zeroes all sensors upon opening the application
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Unified Orientation Handler: Roll, Pitch, Flatness, and Yaw from DeviceOrientationEvent
-    // The accelerometer (devicemotion) is intentionally deactivated to prevent linear acceleration noise and shaking.
-    const processOrientation = (e: DeviceOrientationEvent) => {
-      if (e.alpha === null && e.beta === null && e.gamma === null) return;
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta === null && e.gamma === null && e.alpha === null) return;
 
       if (!hasReceivedAnySensor.current) {
         hasReceivedAnySensor.current = true;
@@ -315,124 +312,76 @@ export function useDeviceSensors(
         setPermissionState('granted');
       }
 
-      // 1. Roll & Pitch: Derived purely from orientation/gyroscope (DeviceOrientationEvent gamma & beta)
+      // Roll: tilt left/right (gamma, degrees -90..90)
+      // Pitch: tilt front/back (beta, degrees -180..180)
+      // Yaw: heading / compass (alpha, degrees 0..360)
       const rawRoll = e.gamma ?? 0;
       const rawPitch = e.beta ?? 0;
+      const rawYaw = e.alpha ?? 0;
 
-      // Initialize instantly on first valid sample to avoid lag
-      if (!hasInitializedRollPitch.current) {
-        hasInitializedRollPitch.current = true;
-        smoothedLevelTilt.current = rawRoll;
+      // 1. Initial Launch Auto-Tare: "mettre tous les capteurs à zero lors de l'ouverture de l'application"
+      if (!hasAutoZeroedOnLaunch.current) {
+        hasAutoZeroedOnLaunch.current = true;
+        smoothedRoll.current = rawRoll;
         smoothedPitch.current = rawPitch;
-      } else {
-        // Smooth responsive filter
-        const smoothFactor = 0.35;
-        smoothedLevelTilt.current += (rawRoll - smoothedLevelTilt.current) * smoothFactor;
-        smoothedPitch.current += (rawPitch - smoothedPitch.current) * smoothFactor;
+        smoothedYaw.current = rawYaw;
+        latestRollRef.current = rawRoll;
+        latestPitchRef.current = rawPitch;
+        latestYawRef.current = rawYaw;
+
+        const initialCal: SensorCalibration = {
+          zeroPitch: rawPitch,
+          zeroRoll: rawRoll,
+          zeroYaw: rawYaw,
+          referenceChassisYaw: rawRoll,
+          referenceChassisPitch: rawPitch,
+          lastCalibratedAt: new Date().toISOString(),
+        };
+        calibrationRef.current = initialCal;
+        setCalibration(initialCal);
+
+        setSensorValues({
+          pitch: 0,
+          roll: 0,
+          yaw: 0,
+          compassHeading: rawYaw,
+          rawPitch,
+          rawRoll,
+          rawYaw,
+          isLevelActive: false,
+          flatRoll: 0,
+          flatPitch: 0,
+          flatTiltDegrees: 0,
+          isFlat: true,
+        });
+        return;
       }
 
-      latestRollRef.current = smoothedLevelTilt.current;
+      // Smooth filtering (Exponential Moving Average) to eliminate jitter while keeping immediate response
+      const smoothFactor = 0.25;
+      smoothedRoll.current += (rawRoll - smoothedRoll.current) * smoothFactor;
+      smoothedPitch.current += (rawPitch - smoothedPitch.current) * smoothFactor;
+
+      latestRollRef.current = smoothedRoll.current;
       latestPitchRef.current = smoothedPitch.current;
-
-      // 2. Pure Compass / Yaw Processing
-      let rawHeading = 0;
-      const anyEvent = e as unknown as { webkitCompassHeading?: number };
-
-      // iOS Safari: webkitCompassHeading is the pure magnetometer compass (0..360° clockwise from North)
-      if (typeof anyEvent.webkitCompassHeading === 'number') {
-        rawHeading = anyEvent.webkitCompassHeading;
-      } else if (e.alpha !== null) {
-        // Standard W3C alpha increases counter-clockwise; invert to 0..360 clockwise compass
-        rawHeading = (360 - e.alpha) % 360;
-        if (rawHeading < 0) rawHeading += 360;
-      }
-
-      if (!hasInitializedCompass.current) {
-        hasInitializedCompass.current = true;
-        smoothedCompass.current = rawHeading;
-        latestCompassRef.current = rawHeading;
-        headingHistoryRef.current = Array(15).fill(rawHeading);
-      }
-
-      // Angular smoothing for compass with 360° wrap-around handling
-      let diffHeading = rawHeading - smoothedCompass.current;
-      while (diffHeading > 180) diffHeading -= 360;
-      while (diffHeading < -180) diffHeading += 360;
-
-      const absDiff = Math.abs(diffHeading);
-      const compassSmoothFactor = absDiff < 1.5 ? 0.07 : absDiff < 5.0 ? 0.18 : 0.35;
-
-      smoothedCompass.current += diffHeading * compassSmoothFactor;
-      while (smoothedCompass.current < 0) smoothedCompass.current += 360;
-      while (smoothedCompass.current >= 360) smoothedCompass.current -= 360;
-
-      latestCompassRef.current = smoothedCompass.current;
-
-      // Maintain rolling history for circular averaging
-      const history = headingHistoryRef.current;
-      history.push(smoothedCompass.current);
-      if (history.length > 20) {
-        history.shift();
-      }
-
-      // 2D Spirit Level Flatness calculation (face up on setup board)
-      const flatRollDeg = rawRoll;
-      const flatPitchDeg = rawPitch;
-      const flatTiltDeg = Math.sqrt(flatRollDeg * flatRollDeg + flatPitchDeg * flatPitchDeg);
-      const isPhoneFlat = flatTiltDeg <= 2.5;
+      latestYawRef.current = rawYaw;
 
       setSensorValues((prev) => ({
         ...prev,
-        roll: smoothedLevelTilt.current,
+        roll: smoothedRoll.current,
         pitch: smoothedPitch.current,
+        yaw: rawYaw,
+        compassHeading: rawYaw,
         rawRoll,
         rawPitch,
-        yaw: smoothedCompass.current,
-        rawYaw: rawHeading,
-        compassHeading: smoothedCompass.current,
-        isLevelActive: true,
-        flatRoll: flatRollDeg,
-        flatPitch: flatPitchDeg,
-        flatTiltDegrees: flatTiltDeg,
-        isFlat: isPhoneFlat,
+        rawYaw,
       }));
     };
 
-    // Absolute orientation handler (Android Chrome pure magnetometer)
-    const handleAbsoluteOrientation = (e: DeviceOrientationEvent) => {
-      if (!hasReceivedAbsolute.current) {
-        hasReceivedAbsolute.current = true;
-        // Re-initialize to absolute coordinates
-        hasInitializedCompass.current = false;
-      }
-      processOrientation(e);
-    };
-
-    // Standard orientation handler (iOS webkitCompassHeading or fallback)
-    const handleStandardOrientation = (e: DeviceOrientationEvent) => {
-      const anyEvent = e as unknown as { webkitCompassHeading?: number };
-      if (typeof anyEvent.webkitCompassHeading === 'number') {
-        processOrientation(e);
-        return;
-      }
-      // On Android, if absolute orientation is active, ignore standard orientation
-      if (hasReceivedAbsolute.current) return;
-
-      processOrientation(e);
-    };
-
-    // Listen to absolute orientation if supported (Android pure magnetometer)
-    if ('ondeviceorientationabsolute' in window) {
-      window.addEventListener('deviceorientationabsolute' as unknown as string, handleAbsoluteOrientation as EventListener, true);
-    }
-    // Also standard orientation (iOS and standard browsers)
-    window.addEventListener('deviceorientation', handleStandardOrientation, true);
+    window.addEventListener('deviceorientation', handleOrientation, true);
 
     return () => {
-      if ('ondeviceorientationabsolute' in window) {
-        window.removeEventListener('deviceorientationabsolute' as unknown as string, handleAbsoluteOrientation as EventListener, true);
-      }
-      window.removeEventListener('deviceorientation', handleStandardOrientation, true);
+      window.removeEventListener('deviceorientation', handleOrientation, true);
     };
   }, []);
 
@@ -441,21 +390,14 @@ export function useDeviceSensors(
   let liveAngle = 0;
 
   if (activeMeasurement === 'camber') {
-    // Level tilt to the right relative to calibrated zero (Tare)
     let effectiveTiltRight = sensorValues.roll - calibration.zeroRoll;
     if (Math.abs(effectiveTiltRight) < 0.08) {
       effectiveTiltRight = 0;
     }
-    if (isLeftWheel) {
-      liveAngle = -effectiveTiltRight;
-    } else {
-      liveAngle = effectiveTiltRight;
-    }
+    // Left wheel: tilting top right (+tilt) means negative camber
+    // Right wheel: tilting top left (-tilt) means negative camber
+    liveAngle = isLeftWheel ? -effectiveTiltRight : effectiveTiltRight;
   } else if (activeMeasurement === 'toe') {
-    // Toe measurement using SMARTPHONE SPIRIT LEVEL with chassis positioned VERTICALLY:
-    // Le châssis est placé verticalement par rapport au plan de travail.
-    // L'utilisateur pose un des bords gauche ou droit du smartphone contre le châssis pour la tare,
-    // puis contre la roue pour mesurer l'angle au niveau à bulle.
     const refVerticalRoll =
       calibration.referenceChassisYaw !== null
         ? calibration.referenceChassisYaw
@@ -465,10 +407,9 @@ export function useDeviceSensors(
     if (Math.abs(diff) < 0.08) {
       diff = 0;
     }
-
     liveAngle = isLeftWheel ? diff : -diff;
   } else {
-    // Caster (Chasse): Uses the exact same high-precision roll inclinometer sensor as camber and toe
+    // Caster
     let rawCasterTilt = sensorValues.roll - calibration.zeroRoll;
     if (Math.abs(rawCasterTilt) < 0.08) {
       rawCasterTilt = 0;
