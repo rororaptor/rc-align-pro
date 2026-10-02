@@ -96,7 +96,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
             isSunMode ? 'text-slate-500' : 'text-slate-400'
           }`}
         >
-          Vue Simplifiée • Châssis de Côté
+          Vue de Côté • Fusée nue (roue enlevée)
         </span>
       </div>
 
@@ -390,7 +390,7 @@ export const CarSideView: React.FC<CarSideViewProps> = ({
             fontSize="8.5"
             fontWeight="bold"
           >
-            Étrier (C-Hub)
+            Pivot fusée nue (sans roue)
           </text>
 
           {/* Badge Roue Sélectionnée & Angle (FL / FR) */}

@@ -124,6 +124,7 @@ export function useDeviceSensors(
   const hasReceivedAnySensor = useRef<boolean>(false);
   const hasReceivedAbsolute = useRef<boolean>(false);
   const hasInitializedCompass = useRef<boolean>(false);
+  const hasInitializedRollPitch = useRef<boolean>(false);
 
   // Synchronous high-frequency sensor refs & history for instantaneous zero calibration
   const latestCompassRef = useRef<number>(0);
@@ -136,7 +137,7 @@ export function useDeviceSensors(
     calibrationRef.current = calibration;
   }, [calibration]);
 
-  // Request permission (iOS 13+ and certain Chromium flags)
+  // Request permission (iOS 13+ and Chromium) - Accelerometer deactivated, only DeviceOrientation
   const requestSensorPermission = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
@@ -144,9 +145,6 @@ export function useDeviceSensors(
     tryLockOrientation();
 
     const DeviceOrientation = window.DeviceOrientationEvent as unknown as {
-      requestPermission?: () => Promise<'granted' | 'denied'>;
-    };
-    const DeviceMotion = window.DeviceMotionEvent as unknown as {
       requestPermission?: () => Promise<'granted' | 'denied'>;
     };
 
@@ -159,15 +157,6 @@ export function useDeviceSensors(
       } catch (err) {
         console.warn('DeviceOrientation permission error:', err);
         granted = false;
-      }
-    }
-
-    if (DeviceMotion && typeof DeviceMotion.requestPermission === 'function') {
-      try {
-        const resp = await DeviceMotion.requestPermission();
-        if (resp !== 'granted') granted = false;
-      } catch (err) {
-        console.warn('DeviceMotion permission error:', err);
       }
     }
 
@@ -311,71 +300,13 @@ export function useDeviceSensors(
   }, []);
 
   // Setup Sensors:
-  // 1. DeviceMotionEvent (Precision Spirit Level - Accelerometer ONLY)
-  // 2. Pure Compass Heading (Magnetometer ONLY, isolated from accelerometer)
+  // Pure Orientation & Gyroscope Sensors (ACCELEROMETER DEACTIVATED for camber, toe, and caster)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. DeviceMotionEvent: Precision Spirit Level
-    const handleMotion = (e: DeviceMotionEvent) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
-
-      const ax = acc.x ?? 0;
-      const ay = acc.y ?? 0;
-      const az = acc.z ?? 0;
-
-      const gMag = Math.sqrt(ax * ax + ay * ay + az * az);
-      if (gMag < 3.0) return; // Ignore free-fall or non-gravity states
-
-      if (!hasReceivedAnySensor.current) {
-        hasReceivedAnySensor.current = true;
-        setHasRealSensors(true);
-        setPermissionState('granted');
-      }
-
-      // Spirit Level in vertical plane (edge on wheel for camber / caster):
-      const signY = ay >= -1.0 ? 1 : -1;
-      const normalizedRatio = Math.max(-1, Math.min(1, ax / gMag));
-      const instantaneousTilt = signY * Math.asin(normalizedRatio) * (180 / Math.PI);
-
-      // Pitch tilt for caster / front-back inclination
-      const pitchRatio = Math.max(-1, Math.min(1, az / gMag));
-      const instantaneousPitch = Math.asin(pitchRatio) * (180 / Math.PI);
-
-      // Low-pass exponential moving average filter
-      const smoothFactor = 0.25;
-      smoothedLevelTilt.current += (instantaneousTilt - smoothedLevelTilt.current) * smoothFactor;
-      smoothedPitch.current += (instantaneousPitch - smoothedPitch.current) * smoothFactor;
-
-      latestRollRef.current = smoothedLevelTilt.current;
-      latestPitchRef.current = smoothedPitch.current;
-
-      // 2D Spirit Level flatness (when phone is placed horizontal / flat face up on board or chassis):
-      // When flat face up: ax = 0, ay = 0, az ~ 9.8
-      const normFlatRoll = Math.max(-1, Math.min(1, ax / gMag));
-      const normFlatPitch = Math.max(-1, Math.min(1, ay / gMag));
-      const flatRollDeg = Math.asin(normFlatRoll) * (180 / Math.PI);
-      const flatPitchDeg = Math.asin(normFlatPitch) * (180 / Math.PI);
-      const flatTiltDeg = Math.sqrt(flatRollDeg * flatRollDeg + flatPitchDeg * flatPitchDeg);
-      const isPhoneFlat = flatTiltDeg <= 2.5;
-
-      setSensorValues((prev) => ({
-        ...prev,
-        roll: smoothedLevelTilt.current,
-        pitch: smoothedPitch.current,
-        rawRoll: instantaneousTilt,
-        rawPitch: instantaneousPitch,
-        isLevelActive: true,
-        flatRoll: flatRollDeg,
-        flatPitch: flatPitchDeg,
-        flatTiltDegrees: flatTiltDeg,
-        isFlat: isPhoneFlat,
-      }));
-    };
-
-    // 2. Pure Compass Processing (Magnetometer ONLY, isolated from accelerometer)
-    const processPureCompassHeading = (e: DeviceOrientationEvent) => {
+    // Unified Orientation Handler: Roll, Pitch, Flatness, and Yaw from DeviceOrientationEvent
+    // The accelerometer (devicemotion) is intentionally deactivated to prevent linear acceleration noise and shaking.
+    const processOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha === null && e.beta === null && e.gamma === null) return;
 
       if (!hasReceivedAnySensor.current) {
@@ -384,6 +315,26 @@ export function useDeviceSensors(
         setPermissionState('granted');
       }
 
+      // 1. Roll & Pitch: Derived purely from orientation/gyroscope (DeviceOrientationEvent gamma & beta)
+      const rawRoll = e.gamma ?? 0;
+      const rawPitch = e.beta ?? 0;
+
+      // Initialize instantly on first valid sample to avoid lag
+      if (!hasInitializedRollPitch.current) {
+        hasInitializedRollPitch.current = true;
+        smoothedLevelTilt.current = rawRoll;
+        smoothedPitch.current = rawPitch;
+      } else {
+        // Smooth responsive filter
+        const smoothFactor = 0.35;
+        smoothedLevelTilt.current += (rawRoll - smoothedLevelTilt.current) * smoothFactor;
+        smoothedPitch.current += (rawPitch - smoothedPitch.current) * smoothFactor;
+      }
+
+      latestRollRef.current = smoothedLevelTilt.current;
+      latestPitchRef.current = smoothedPitch.current;
+
+      // 2. Pure Compass / Yaw Processing
       let rawHeading = 0;
       const anyEvent = e as unknown as { webkitCompassHeading?: number };
 
@@ -396,7 +347,6 @@ export function useDeviceSensors(
         if (rawHeading < 0) rawHeading += 360;
       }
 
-      // Initialize directly on first sample to avoid drifting from 0
       if (!hasInitializedCompass.current) {
         hasInitializedCompass.current = true;
         smoothedCompass.current = rawHeading;
@@ -409,8 +359,6 @@ export function useDeviceSensors(
       while (diffHeading > 180) diffHeading -= 360;
       while (diffHeading < -180) diffHeading += 360;
 
-      // Adaptive smoothing: strong filtering when motionless (< 1.5°) to eliminate noise,
-      // responsive tracking when turning
       const absDiff = Math.abs(diffHeading);
       const compassSmoothFactor = absDiff < 1.5 ? 0.07 : absDiff < 5.0 ? 0.18 : 0.35;
 
@@ -427,11 +375,26 @@ export function useDeviceSensors(
         history.shift();
       }
 
+      // 2D Spirit Level Flatness calculation (face up on setup board)
+      const flatRollDeg = rawRoll;
+      const flatPitchDeg = rawPitch;
+      const flatTiltDeg = Math.sqrt(flatRollDeg * flatRollDeg + flatPitchDeg * flatPitchDeg);
+      const isPhoneFlat = flatTiltDeg <= 2.5;
+
       setSensorValues((prev) => ({
         ...prev,
-        compassHeading: smoothedCompass.current,
+        roll: smoothedLevelTilt.current,
+        pitch: smoothedPitch.current,
+        rawRoll,
+        rawPitch,
         yaw: smoothedCompass.current,
         rawYaw: rawHeading,
+        compassHeading: smoothedCompass.current,
+        isLevelActive: true,
+        flatRoll: flatRollDeg,
+        flatPitch: flatPitchDeg,
+        flatTiltDegrees: flatTiltDeg,
+        isFlat: isPhoneFlat,
       }));
     };
 
@@ -442,35 +405,30 @@ export function useDeviceSensors(
         // Re-initialize to absolute coordinates
         hasInitializedCompass.current = false;
       }
-      processPureCompassHeading(e);
+      processOrientation(e);
     };
 
     // Standard orientation handler (iOS webkitCompassHeading or fallback)
     const handleStandardOrientation = (e: DeviceOrientationEvent) => {
       const anyEvent = e as unknown as { webkitCompassHeading?: number };
       if (typeof anyEvent.webkitCompassHeading === 'number') {
-        processPureCompassHeading(e);
+        processOrientation(e);
         return;
       }
       // On Android, if absolute orientation is active, ignore standard orientation
-      // to avoid accelerometer/gyro fusion noise!
       if (hasReceivedAbsolute.current) return;
 
-      processPureCompassHeading(e);
+      processOrientation(e);
     };
-
-    // Listen to motion for spirit level
-    window.addEventListener('devicemotion', handleMotion, true);
 
     // Listen to absolute orientation if supported (Android pure magnetometer)
     if ('ondeviceorientationabsolute' in window) {
       window.addEventListener('deviceorientationabsolute' as unknown as string, handleAbsoluteOrientation as EventListener, true);
     }
-    // Also standard orientation (iOS webkitCompassHeading)
+    // Also standard orientation (iOS and standard browsers)
     window.addEventListener('deviceorientation', handleStandardOrientation, true);
 
     return () => {
-      window.removeEventListener('devicemotion', handleMotion, true);
       if ('ondeviceorientationabsolute' in window) {
         window.removeEventListener('deviceorientationabsolute' as unknown as string, handleAbsoluteOrientation as EventListener, true);
       }

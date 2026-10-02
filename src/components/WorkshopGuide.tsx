@@ -19,6 +19,7 @@ import {
   Navigation,
   CheckCircle2,
   Lightbulb,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface WorkshopGuideProps {
@@ -324,6 +325,29 @@ export const WorkshopGuide: React.FC<WorkshopGuideProps> = ({
             onSelectWheel={safeOnSelectWheel}
             settings={settings}
           />
+
+          {/* Important Notice: Wheels must be removed during caster measurement */}
+          <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-3.5 flex items-start gap-3 text-xs shadow-md">
+            <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div className="space-y-1">
+              <span className="font-extrabold text-amber-300 block text-xs tracking-wide">
+                {lang === 'en'
+                  ? 'MANDATORY PROCEDURE: REMOVE WHEELS BEFORE MEASURING CASTER'
+                  : lang === 'de'
+                  ? 'WICHTIGER HINWEIS: RÄDER BEI DER NACHLAUFMESSUNG ABNEHMEN'
+                  : 'PROCÉDURE OBLIGATOIRE : ENLEVER LES ROUES LORS DE LA MESURE DE LA CHASSE'}
+              </span>
+              <p className="text-amber-200/90 leading-relaxed text-[11px] sm:text-xs">
+                {lang === 'en'
+                  ? 'Unlike camber and toe which are measured against the wheel rim, caster angle is measured directly along the bare steering knuckle pivot axis (C-hub / Kingpin). You must remove the front wheels to place the smartphone edge flush against the knuckle pivot.'
+                  : lang === 'de'
+                  ? 'Anders als Sturz und Spur, die an der Felge gemessen werden, wird der Nachlaufwinkel direkt an der Neigungsachse des freiliegenden Achsschenkels (C-Hub / Kingpin) gemessen. Die Vorderräder müssen zwingend abgenommen werden, um die Kante des Smartphones bündig anlegen zu können.'
+                  : 'Contrairement au carrossage et au pincement qui se mesurent contre la jante, l\'angle de chasse se mesure directement sur l\'axe de pivot de la fusée avant nue (étrier / C-hub). Il faut obligatoirement enlever les roues avant pour pouvoir plaquer la tranche du smartphone contre l\'axe de pivot.'}
+              </p>
+            </div>
+          </div>
 
           {/* 3 Step Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
